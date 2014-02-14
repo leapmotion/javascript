@@ -14,8 +14,8 @@
 		'x': '5%',
 		'y': '5%',
 		'topTouchZone': 25,
-		'color': '#f33',
-		'children':[{
+		'color': '#aaa',
+		/*'children':[{
 				'class':'icon',
 				'title': 'an app',
 				'width': '40%',
@@ -23,8 +23,8 @@
 				'x': '5%',
 				'y': '5%',
 				'color': '#ddd',
-				'body':'icon text',
-		}],
+				'body':'Icon Text',
+		}],*/
 	},{
 		'class':'window',
 		'title': 'Chat',
@@ -32,7 +32,7 @@
 		'height': '40%',
 		'x': '70%',
 		'y': '20%',
-		'color': '#3f3',
+		'color': '#aaa',
 		'topTouchZone': 25,
 		'children':[],
 	},{
@@ -42,7 +42,7 @@
 		'height': '50%',
 		'x': '20%',
 		'y': '50%',
-		'color': '#33f',
+		'color': '#aaa',
 		'topTouchZone': 25,
 		'children':[],
 	}];
@@ -52,17 +52,17 @@
 		screenHeight = $(window).height();
 	});
 
+	/*
+	 * UI update loop. Parses the incoming input events and 
+	 * preforms the proper behaviors.
+	 */
 	var update = function(){
 		var time = new Date().getTime() / 1000.0;
 		requestAnimationFrame(update);
 
-		for(var inputEvent in inputEngine.events){
-			//console.log(time, inputEngine.events[inputEvent].state, inputEngine.events[inputEvent].position);
-		}
-
 		for(var inputId in inputEngine.events)
 		{
-			var inputEvent = inputEngine.events[inputEvent];
+			var inputEvent = inputEngine.events[inputId];
 			var position = inputEvent.position;
 			position.x = position.x * screenWidth;
 			position.y = screenHeight - (position.y * screenHeight);
@@ -71,7 +71,6 @@
 				var elem = document.elementFromPoint(position.x-1, position.y+1);
 
 				bringToFront(elem);
-				//console.log($(elem).attr('class'));
 				if($(elem).attr('class') == 'window' || $(elem).attr('class') == 'icon'){
 					selectElem(elem, inputId, position);
 				}
@@ -82,17 +81,12 @@
 			}
 			else if(inputEvent.state == 'move')
 			{
-				//console.log('move');
 				var moveElem = function(elem, newPos)
 				{
-					//console.log("MoveElem", elem, newPos);
 					var offset = {'x':0, 'y':0};
 					offset.x = $(elem).attr('data-selectPosX');
 					offset.y = $(elem).attr('data-selectPosY');
 
-					console.log($(elem).attr('data-topTouchZone'));
-					console.log(offset.y);
-					console.log(offset.y <= (Number)($(elem).attr('data-topTouchZone')));
 					if($(elem).attr('data-topTouchZone') == undefined || offset.y <= (Number)($(elem).attr('data-topTouchZone')))
 					{
 						var xPos = newPos.x - offset.x;
@@ -111,19 +105,44 @@
 
 				windows.forEach(function(elem){ moveProperElem(inputId, elem, inputEvent.position); });
 			}
+			else if(inputEvent.state == 'doubleClick')
+			{
+				var elem = document.elementFromPoint(position.x-1, position.y+1);
+				console.log("doubleClick");
+				$(elem).hide().slideDown(50);
+			}
+			else if(inputEvent.state == 'alt_click')
+			{
+				console.log("alt_click: " + inputId);
+			}
+			else if(inputEvent.state == 'alt_unclick')
+			{
+				console.log("alt_unclick: " + inputId);
+			}
 		}
 
 		setWindowZOrder();
 	}
 
+	/*
+	 * Set the data-selectId and position properties of the 
+	 * given element to the given clickId. These properties 
+	 * are used to determine if an element is selected by 
+	 * a particular clickId and where the initial selection
+	 * ocurred relative to the object.
+	 */
 	var selectElem = function(elem, clickId, clickPosition){
-		console.log('select: ' + elem);
 		$(elem).attr('data-selectId', clickId);
 		$(elem).attr('data-selectPosX', clickPosition.x - $(elem).offset().left);
 		$(elem).attr('data-selectPosY', clickPosition.y - $(elem).offset().top);
 		
 	}
 
+	/*
+	 * Unset the data-selectedId property of elements selected by the
+	 * given clickID. This property is used to determine if an element 
+	 * is currently selected by a given clickID.
+	 */
 	var deselectElem = function(clickId){
 		var checkElem = function(elem){
 			if($(elem).attr('data-selectId') == clickId){
@@ -135,6 +154,10 @@
 		icons.forEach(checkElem);
 	}
 
+	/*
+	 * Using the ordering in the 'windows' list
+	 * This element will still be behind the cursors.
+	 */
 	var setWindowZOrder = function(){
 		var ittr = 9998;
 
@@ -150,6 +173,11 @@
 		});
 	}
 
+	/*
+	 * Bring the given element to the front of the windows list. 
+	 * setWindowZOrder() uses the order of elements in this list
+	 * to set the z-order of elements on the page.
+	 */
 	var bringToFront = function(elem) {
 		var ittr = 0;
 		var found = false;
@@ -170,11 +198,13 @@
 		if(found){
 			elem = windows.splice(ittr, 1);
 			windows.unshift(elem[0]);
-			console.log(windows);
 		} 
 	}
 
-
+	/*
+	 * Parse the UI JSON and create HTML for the UI.
+	 * This mostly exists to keep the visual defenition in the UI Engine.
+	 */
 	var startUIParse = function(){
 		var jsonToHTML = function(uiElement){
 			var htmlString = "";
