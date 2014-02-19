@@ -9,25 +9,13 @@
  *
  ***************/
 
-var announce_id = 0;
-var ANN_DELAY = 1500;
-function announce(event, data){
-    $('#event').append('<div id="ann_' + announce_id + '"><b>' + event + '</b>:' + data + '</div>');
-    var aid = announce_id;
-    ++announce_id;
-    setTimeout(function(){
-        $('#ann_' + aid).hide();
-    }, ANN_DELAY);
-}
-
-
 $( document ).ready(function(){
     console.log("Go");
     const PALM_TRACKING = true;
     const HAND_DIRECTION = false;
     const TRIGGER_CLICK = true;
     const PINCH_CLICK = true;
-    const PINCH_DOUBLE = false;
+    const PINCH_DOUBLE = true;
     const ALT_PINCH = false;
     const DOUBLE_TAP = false;
     const KEY_CLICK = true;
@@ -285,10 +273,7 @@ $( document ).ready(function(){
     function findClosestFingerTo(finger_id, hand){
         var baseFinger = hand.finger(finger_id);
         if(baseFinger.valid) {
-            var basePosition = normalizeVector(
-                baseFinger.stabilizedTipPosition
-              //  baseFinger.tipPosition
-            );
+            var basePosition = normalizeVector(baseFinger.tipPosition);
             var minDist = Number.MAX_VALUE;
             var minFinger = undefined;
             var distances = [];
@@ -362,6 +347,149 @@ $( document ).ready(function(){
 });
 
 /****************
+ * Vector Object - mostly for the sake of symantics.
+ ***************/
+function Vector(mX,mY,mZ){
+    this.x = typeof mX!=='undefined'?mX:0;
+    this.y = typeof mY!=='undefined'?mY:0;
+    this.z = typeof mZ!=='undefined'?mZ:0;
+}
+
+Vector.prototype.add = function(v2){
+    return new Vector(
+        this.x + v2.x,
+        this.y + v2.y,
+        this.z + v2.z);
+}
+
+Vector.prototype.subtract = function(v2){
+    return new Vector(
+        this.x - v2.x,
+        this.y - v2.y,
+        this.z - v2.z);
+}
+
+Vector.prototype.equals = function(v2){
+    return this.x == v2.x && this.y == v2.y && this.z == v2.z;
+}
+
+Vector.prototype.squaredDistanceTo = function(v2){
+    var diff = this.subtract(v2);
+    return (diff.x*diff.x)+(diff.y*diff.y)+(diff.z*diff.z);
+}
+
+Vector.prototype.normalized = function() {
+    var mag = this.magnitude();
+    return new Vector(
+        this.x / mag,
+        this.y / mag,
+        this.z / mag);
+}
+
+Vector.prototype.magnitude = function() {
+    return Math.sqrt((this.x*this.x)+(this.y*this.y)+(this.z*this.z));
+}
+
+Vector.prototype.distanceTo = function(v2){
+    return Math.sqrt(this.squaredDistance(v2));
+}
+
+Vector.prototype.dotProduct = function(v2) {
+    var v1 = this.normalized();
+    v2 = v2.normalized();
+    var n = 0;
+    n += v1.x * v2.x;
+    n += v1.y * v2.y;
+    n += v1.z * v2.z;
+    return n;
+}
+
+function leapToVector(leapPosition){
+    return new Vector(leapPosition[0], leapPosition[1], leapPosition[2]);
+}
+
+/****************
+ * Input Engine for taking clicks and actions
+ * from the leap application and turning them
+ * into events for the UI Engine.
+ ***************/
+
+(function(){
+    var inputEngine = {
+        "singleClicks": {},
+        "doubleClicks": {},
+        "altClicks": {},
+        "events": {}, //Remove an event when you're done with it.
+    }
+
+    var currentSingleClicks = {};
+    var currentAltClicks = {};
+    var currentDoubleClicks = {};
+
+    //Click Object
+    var Click = function(state, vector){
+        return {
+            'state': state,
+            'position': vector,
+        }
+    }
+
+    var update = function(){
+        inputEngine.events = {};
+        requestAnimationFrame(update);
+
+        for(var clickId in currentSingleClicks){
+            if(!(clickId in inputEngine.singleClicks)){
+                inputEngine.events[clickId] = Click('unclick', currentSingleClicks[clickId]);
+            }
+            else
+            {
+                if(currentSingleClicks[clickId] != inputEngine.singleClicks[clickId])
+                {
+                    inputEngine.events[clickId] = Click('move', inputEngine.singleClicks[clickId]);
+                }
+            }
+        }
+
+        for(var clickId in inputEngine.singleClicks){
+            if(!(clickId in currentSingleClicks)){
+                inputEngine.events[clickId] = Click('click', inputEngine.singleClicks[clickId]);
+            }
+        }
+
+        for(var clickId in InputEngine.doubleClicks){
+            if(!(clickId in currentDoubleClicks)){
+                inputEngine.events[clickId] = Click('doubleClick', inputEngine.doubleClicks[clickId]);
+            }
+        }
+
+        //Alt Clicks
+        for(var clickId in currentAltClicks){
+            if(!(clickId in inputEngine.altClicks)){
+                inputEngine.events[clickId] = Click('alt_unclick', currentAltClicks[clickId]);
+            }
+        }
+
+        for(var clickId in inputEngine.altClicks){
+            if(!(clickId in currentAltClicks)){
+                inputEngine.events[clickId] = Click('alt_click', inputEngine.altClicks[clickId]);
+            }
+        }
+
+        currentSingleClicks = inputEngine.singleClicks;
+        currentAltClicks = inputEngine.altClicks;
+        currentDoubleClicks = inputEngine.doubleClicks;
+        inputEngine.singleClicks = {};
+        inputEngine.altClicks = {};
+        inputEngine.doubleClicks = {};
+    }
+
+    window.InputEngine = inputEngine;
+    console.log(window.InputEngine);
+    requestAnimationFrame(update);
+})();
+
+/****************
  * UI Engine for pushing the windows in the
  * DOM. Takes events from the Input Engine.
  ***************/
@@ -381,7 +509,7 @@ $( document ).ready(function(){
         'height': '50%',
         'x': '5%',
         'y': '5%',
-        'topTouchZone': 100,
+        'topTouchZone': 25,
         'color': '#aaa',
         /*'children':[{
          'class':'icon',
@@ -401,7 +529,7 @@ $( document ).ready(function(){
         'x': '70%',
         'y': '20%',
         'color': '#aaa',
-        'topTouchZone': 100,
+        'topTouchZone': 25,
         'children':[],
     },{
         'class':'window',
@@ -411,7 +539,7 @@ $( document ).ready(function(){
         'x': '20%',
         'y': '50%',
         'color': '#aaa',
-        'topTouchZone': 100,
+        'topTouchZone': 25,
         'children':[],
     }];
 
@@ -419,6 +547,7 @@ $( document ).ready(function(){
         screenWidth = $(window).width();
         screenHeight = $(window).height();
     });
+
     /*
      * UI update loop. Parses the incoming input events and
      * preforms the proper behaviors.
@@ -439,7 +568,6 @@ $( document ).ready(function(){
 
                 bringToFront(elem);
                 if($(elem).attr('class') == 'window' || $(elem).attr('class') == 'icon'){
-                    announce('click', elem.id);
                     selectElem(elem, inputId, position);
                 }
             }
@@ -460,7 +588,7 @@ $( document ).ready(function(){
                         var xPos = newPos.x - offset.x;
                         var yPos = newPos.y - offset.y;
 
-                        $(elem).offset({'left':Math.min(Math.max(xPos,0), window.innerWidth - 100), 'top':Math.min(window.innerHeight - 100, Math.max(yPos,0))});
+                        $(elem).offset({'left':Math.max(xPos,0), 'top':Math.max(yPos,0)});
                     }
                 }
 
@@ -475,7 +603,6 @@ $( document ).ready(function(){
             }
             else if(inputEvent.state == 'doubleClick')
             {
-                console.log('double click hide');
                 var elem = document.elementFromPoint(position.x-1, position.y+1);
                 console.log("doubleClick");
                 $(elem).hide().slideDown(50);
