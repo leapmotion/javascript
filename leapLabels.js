@@ -1,11 +1,9 @@
 (function(){
-	const MAX_HANDS = 1; //More than 1 hand drops DOM performance
+	const MAX_HANDS = 2; //More than 1 hand drops DOM performance
 	const FINGER_COUNT = 5; 
-	const MIN_Y_SCALE = 0.5;
-	const MAX_Y_SCALE = 1.0;
 	const LEAP_MIN = { 'x':-15.0, 'y':15.0, 'z':-20.0 };
 	const LEAP_MAX = { 'x': 15.0, 'y':26.0, 'z': 20.0 }; 
-	const LABEL_OFFSET = { 'x': 20.0, 'y': -10 };
+	const LABEL_OFFSET = { 'x': 30.0, 'y': -20 };
 	const PALM_HTML	= "<div class='palm'><img src='images/palm.png' /></div>";
 	const DIP_HTML	= "<div class='dip'><img src='images/dip.png' /></div>";
 	const PIP_HTML	= "<div class='pip'><img src='images/pip.png' /></div>";
@@ -68,6 +66,7 @@
 	 */
 	function showHand(h) {
 		$("#palm_"+h).show();
+		$('#label_'+h+'_palm').show();
 		for(var f=0; f < FINGER_COUNT; f++) {
 			$("#mcp_"+h+"_"+f).show();
 			$("#pip_"+h+"_"+f).show();
@@ -81,6 +80,7 @@
 
 	function hideHand(h) {
 		$("#palm_"+h).hide();
+		$('#label_'+h+'_palm').hide();
 		for(var f=0; f < FINGER_COUNT; f++) {
 			$("#mcp_"+h+"_"+f).hide();
 			$("#pip_"+h+"_"+f).hide();
@@ -90,9 +90,12 @@
 	}
 
 	function updateHandPosition(h, leap_hand) {
-		var palmPosition = leapToVector(leap_hand.palmPosition).multiplyScalar(normalToScreen);
+		var palmPosition = normalizeVector(leap_hand.palmPosition).multiplyScalar(normalToScreen);
 
 		$("#palm_"+h).offset({'left': palmPosition.x , 'top': palmPosition.z });
+		$("#palm_"+h).css('position', 'absolute');
+
+		$('#label_'+h+'_palm').offset({ "left": palmPosition.x + LABEL_OFFSET.x, "top": palmPosition.z + LABEL_OFFSET.y });
 		$("#palm_"+h).css('position', 'absolute');
 		
 		for(var f=0; f < FINGER_COUNT; f++) {
@@ -114,6 +117,7 @@
 	}
 
 	function updateHandLabelText(h, leap_hand) {
+		$('#label_'+h+'_palm').text(leap_hand.type);
 		for(var f=0; f < FINGER_COUNT; f++) {
 			var finger = leap_hand.fingers[f];
 			$("#label_"+h+"_"+f).text(fingerMap[finger.type]);
@@ -129,6 +133,11 @@
 			palm.attr('id',"palm_"+h);
 			palm.hide();
 			$('body').append(palm);
+
+			var palmLabel = $(LABEL_HTML);
+			palmLabel.attr('id', 'label_'+h+'_palm');
+			palmLabel.hide();
+			$('body').append(palmLabel);
 			
 			//Add the fingers
 			for(var f=0;f<FINGER_COUNT;f++)
