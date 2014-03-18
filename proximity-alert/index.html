@@ -1,0 +1,77 @@
+<html>
+  <head>
+    <title>Proximity Alert</title>
+    <script src="//js.leapmotion.com/leap-0.4.2.js"></script>
+    <script src="//js.leapmotion.com/leap-plugins-0.1.3.js"></script>
+    <script src="./leap.proximity-alert.js"></script>
+    <style>
+      body {
+        font-family: "Myriad Pro", Myriad, "Helvetica Neue", Helvetica, Arial, sans-serif;
+        line-height: 1.5em;
+      }
+      p {
+       max-width: 600px;
+      }
+
+      ul {
+
+      }
+      li {
+        display: inline-block;
+        padding-left: 1em;
+      }
+    </style>
+    <script>
+      window.onload = function() {
+        var beginControl, proximityAlertScope;
+        proximityAlertScope = {};
+
+        (new Leap.Controller)
+          .use('handEntry')
+          .use('proximityAlert', proximityAlertScope)
+          .on('frame', function() {
+            document.getElementById('status').innerHTML = 'Leap Connected';
+          })
+          .connect();
+
+        beginControl = document.getElementById('begin');
+        proximityAlertScope.setVolume(0);
+        return beginControl.onclick = function() {
+          proximityAlertScope.setVolume(1);
+          beginControl.innerHTML = "Unmuted";
+        };
+      };
+    </script>
+  </head>
+  <body>
+    <br/>
+    <h1>Proximity Alert</h1>
+    <h2 id=status>Connect your Leap</h2>
+    <p>
+      Works in browsers that support the <a href="http://caniuse.com/audio-api">Web Audio API</a>.
+    </p>
+    <br/>
+    <p>
+      <br/>
+      <b>Usage:</b> [<a href='javascript:void(0);' id=begin>Click to Unmute</a>]
+      <br/>Move your hand slowly and carefully above your Leap.  Start from the center, and move out in one direction.  As you near the edge of the Interaction Box, beeping will begin gradually, speeding up until you hit the edge.  Outside of the box, while the hand is in view, a constant beep will sound.
+      <br/>
+      <br/>
+    </p>
+
+    <img src="https://developer.leapmotion.com/documentation/images/Leap_InteractionBox.png"/>
+
+    <p>
+      Read more in <a href="https://developer.leapmotion.com/documentation/python/api/Leap.InteractionBox.html" target=_blank>the docs</a>.
+      Also check out <a href="https://github.com/leapmotion/leapjs-plugins" target=_blank>LeapJS Plugins</a>.
+    </p>
+
+    <hr/>
+
+    <ul>
+      <li><a href="http://labs.leapmotion.com/proximity-alert-building-audio-feedback-with-a-new-leapjs-plugin" target=_blank>Blog Post</a></li>
+      <li><a href="https://github.com/leapmotion/leapjs-plugins/tree/master/extras/proximity-alert">Source on Github</a></li>
+    </ul>
+  </body>
+</html>
+
