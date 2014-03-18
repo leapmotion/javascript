@@ -1,0 +1,56 @@
+<html>
+<head>
+  <style>
+    #cursor {
+      width: 100px;
+      height: 100px;
+      position: fixed;
+      margin-left: -50px;
+      margin-top: -50px;
+      z-index: 910;
+
+      background: black;
+      border-radius: 100%;
+      background: -webkit-radial-gradient(100px 100px, circle, #5cabff, #000);
+      background: -moz-radial-gradient(100px 100px, circle, #5cabff, #000);
+      background: radial-gradient(100px 100px, circle, #5cabff, #000);
+    }
+  </style>
+  <script src="//js.leapmotion.com/leap-0.4.2.js"></script>
+  <script src="leap.screen-position.js"></script>
+</head>
+<body>
+
+<div id="screen-position-demo">
+  <div id="cursor"></div>
+  <div id="output"></div>
+  <span id="noleap">No Leap Device Attached</span>
+</div>
+
+
+<script>
+  window.cursor = document.getElementById('cursor');
+  window.output = document.getElementById('output');
+
+  (new Leap.Controller)
+    .use('screenPosition', {
+      scale: 1
+    })
+    .on('frame', function(frame) {
+      var hand;
+      if (hand = frame.hands[0]) {
+
+        output.innerHTML = ("[<br/>&nbsp;&nbsp;" + (hand.screenPosition()[0].toPrecision(4)) +
+                     "        <br/>&nbsp;&nbsp;" + (hand.screenPosition()[1].toPrecision(4)) +
+                     "        <br/>&nbsp;&nbsp;" + (hand.screenPosition()[2].toPrecision(4)) + "<br/>]");
+
+        cursor.style.left = hand.screenPosition()[0] + 'px'
+        cursor.style.top = hand.screenPosition()[1] + 'px'
+      }
+  }).on('ready', function(){
+      document.getElementById('noleap').style.display = 'none';
+  }).connect();
+
+</script>
+</body>
+</html>
