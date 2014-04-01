@@ -16,4 +16,5 @@ body {
 	background-image: url("images/leap.png");
 	background-position: center;
 	background-repeat: no-repeat;
+	background-attachment:fixed;
 }
