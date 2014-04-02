@@ -1,0 +1,36 @@
+{
+  "name": "leapjs-rigged-hand",
+  "version": "0.1.0",
+  "description": "WebGL Rigged hand for LeapJS",
+  "main": "main/leapjs-plugins-0.1.0.js",
+  "dependencies": {},
+  "devDependencies": {
+    "coffee-script": ">=1.7.1",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-contrib-uglify": "~0.3.2",
+    "grunt-contrib-coffee": "~0.8.2",
+    "grunt-banner": "git://github.com/pehrlich/grunt-banner.git",
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-string-replace": "~0.2.7",
+    "grunt": "~0.4.2",
+    "grunt-bump": "0.0.13",
+    "load-grunt-tasks": "~0.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/leapmotion/leapjs-rigged-hand.git"
+  },
+  "keywords": [
+    "leap",
+    "leapjs",
+    "plugin",
+    "rigged",
+    "hand"
+  ],
+  "author": "pehrlich",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "http://github.com/leapmotion/leapjs-rigged-hand/issues"
+  },
+  "homepage": "http://github.com/leapmotion/leapjs-rigged-hand"
+}

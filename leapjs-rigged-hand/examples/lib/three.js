@@ -11351,6 +11351,7 @@ THREE.JSONLoader.prototype.parse = function ( json, texturePath ) {
 					geometry.skinIndices.length + '), and skinWeights (' + geometry.skinWeights.length + ') should match.');
 		}
 
+    // hacked in by peter
     for ( i = 0; i < geometry.bones.length; i++) {
       for ( j = 0; j < 3; j++) {
         geometry.bones[i].pos[j] *= scale;

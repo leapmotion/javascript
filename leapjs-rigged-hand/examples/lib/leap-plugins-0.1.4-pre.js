@@ -1,5 +1,5 @@
 /*    
- * LeapJS-Plugins  - v0.1.3 - 2014-03-12    
+ * LeapJS-Plugins  - v0.1.3 - 2014-04-01    
  * http://github.com/leapmotion/leapjs-plugins/    
  *    
  * Copyright 2014 LeapMotion, Inc    
@@ -32,24 +32,15 @@ Each event also includes the hand object, which will be invalid for the handLost
   handEntry = function() {
     var activeHandIds;
     activeHandIds = [];
-    activeHandIds.remove = function() {
-      var what, a = arguments, L = a.length, ax;
-      while (L && this.length) {
-          what = a[--L];
-          while ((ax = this.indexOf(what)) !== -1) {
-              this.splice(ax, 1);
-          }
-      }
-      return this;
-  };
     this.on("deviceDisconnected", function() {
-      var id, _i, _len, _results;
-      _results = [];
-      for (_i = 0, _len = activeHandIds.length; _i < _len; _i++) {
-        id = activeHandIds[_i];
-        _results.push(this.emit('handLost', this.lastConnectionFrame.hand(id)));
-      }
-      return _results;
+      for (var i = 0, len = activeHandIds.length; i < len; i++){
+      id = activeHandIds[i];
+      activeHandIds.splice(i, 1);
+      // this gets executed before the current frame is added to the history.
+      this.emit('handLost', this.lastConnectionFrame.hand(id))
+      i--;
+      len--;
+    };
     });
     return {
       frame: function(frame) {
@@ -60,7 +51,7 @@ Each event also includes the hand object, which will be invalid for the handLost
         for (var i = 0, len = activeHandIds.length; i < len; i++){
         id = activeHandIds[i];
         if(  newValidHandIds.indexOf(id) == -1){
-          activeHandIds.remove(id)
+          activeHandIds.splice(i, 1);
           // this gets executed before the current frame is added to the history.
           this.emit('handLost', this.frame(1).hand(id))
           i--;
@@ -84,8 +75,10 @@ Each event also includes the hand object, which will be invalid for the handLost
 
   if ((typeof Leap !== 'undefined') && Leap.Controller) {
     Leap.Controller.plugin('handEntry', handEntry);
-  } else {
+  } else if (typeof module !== 'undefined') {
     module.exports.handEntry = handEntry;
+  } else {
+    throw 'leap.js not included';
   }
 
 }).call(this);
@@ -156,8 +149,10 @@ Each event also includes the hand object, which will be invalid for the handLost
 
   if ((typeof Leap !== 'undefined') && Leap.Controller) {
     Leap.Controller.plugin('handHold', handHold);
-  } else {
+  } else if (typeof module !== 'undefined') {
     module.exports.handHold = handHold;
+  } else {
+    throw 'leap.js not included';
   }
 
 }).call(this);
@@ -239,8 +234,55 @@ More info on vec3 can be found, here: http://glmatrix.net/docs/2.2.0/symbols/vec
 
   if ((typeof Leap !== 'undefined') && Leap.Controller) {
     Leap.Controller.plugin('screenPosition', screenPosition);
-  } else {
+  } else if (typeof module !== 'undefined') {
     module.exports.screenPosition = screenPosition;
+  } else {
+    throw 'leap.js not included';
+  }
+
+}).call(this);
+
+//CoffeeScript generated from main/version-check/leap.version-check.coffee
+(function() {
+  var versionCheck;
+
+  versionCheck = function(scope) {
+    scope.alert || (scope.alert = false);
+    scope.requiredProtocolVersion || (scope.requiredProtocolVersion = 6);
+    scope.disconnect || (scope.disconnect = true);
+    if ((typeof Leap !== 'undefined') && Leap.Controller) {
+      if (Leap.version.minor < 5 && Leap.version.dot < 4) {
+        console.warn("LeapJS Version Check plugin incompatible with LeapJS pre 0.4.4");
+      }
+    }
+    this.on('ready', function() {
+      var current, required;
+      required = scope.requiredProtocolVersion;
+      current = this.connection.opts.requestProtocolVersion;
+      if (current < required) {
+        console.warn("Protocol Version too old. v" + required + " required, v" + current + " available.");
+        if (scope.disconnect) {
+          this.disconnect();
+        }
+        if (scope.alert) {
+          alert("Your Leap Software version is out of date.  Visit http://www.leapmotion.com/setup to update");
+        }
+        return this.emit('versionCheck.outdated', {
+          required: required,
+          current: current,
+          disconnect: scope.disconnect
+        });
+      }
+    });
+    return {};
+  };
+
+  if ((typeof Leap !== 'undefined') && Leap.Controller) {
+    Leap.Controller.plugin('versionCheck', versionCheck);
+  } else if (typeof module !== 'undefined') {
+    module.exports.versionCheck = versionCheck;
+  } else {
+    throw 'leap.js not included';
   }
 
 }).call(this);

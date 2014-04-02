@@ -1,13 +1,12 @@
-;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
-/*!
- * LeapJS v0.4.2
- * http://github.com/leapmotion/leapjs/
- *
- * Copyright 2013 LeapMotion, Inc. and other contributors
- * Released under the BSD-2-Clause license
- * http://github.com/leapmotion/leapjs/blob/master/LICENSE.txt
+/*!                                                              
+ * LeapJS v0.4.3                                                  
+ * http://github.com/leapmotion/leapjs/                                        
+ *                                                                             
+ * Copyright 2013 LeapMotion, Inc. and other contributors                      
+ * Released under the BSD-2-Clause license                                     
+ * http://github.com/leapmotion/leapjs/blob/master/LICENSE.txt                 
  */
-},{}],2:[function(require,module,exports){
+;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
 var CircularBuffer = module.exports = function(size) {
   this.pos = 0;
   this._buf = [];
@@ -26,7 +25,7 @@ CircularBuffer.prototype.push = function(o) {
   return this.pos++;
 }
 
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 var chooseProtocol = require('../protocol').chooseProtocol
   , EventEmitter = require('events').EventEmitter
   , _ = require('underscore');
@@ -37,7 +36,7 @@ var BaseConnection = module.exports = function(opts) {
     enableGestures: false,
     port: 6437,
     background: false,
-    requestProtocolVersion: 6
+    requestProtocolVersion: 4
   });
   this.host = this.opts.host;
   this.port = this.opts.port;
@@ -90,14 +89,24 @@ BaseConnection.prototype.handleClose = function(code, reason) {
 
 BaseConnection.prototype.startReconnection = function() {
   var connection = this;
-  this.reconnectionTimer = setInterval(function() { connection.reconnect() }, 1000);
+  if(!this.reconnectionTimer){
+    (this.reconnectionTimer = setInterval(function() { connection.reconnect() }, 1000));
+  }
 }
 
-BaseConnection.prototype.disconnect = function() {
+BaseConnection.prototype.stopReconnection = function() {
+  this.reconnectionTimer = clearInterval(this.reconnectionTimer);
+}
+
+// By default, disconnect will prevent auto-reconnection.
+// Pass in true to allow the reconnection loop not be interrupted continue
+BaseConnection.prototype.disconnect = function(allowReconnect) {
+  if (!allowReconnect) this.stopReconnection();
   if (!this.socket) return;
   this.socket.close();
   delete this.socket;
   delete this.protocol;
+  delete this.background; // This is not persisted when reconnecting to the web socket server
   if (this.connected) {
     this.connected = false;
     this.emit('disconnect');
@@ -107,9 +116,9 @@ BaseConnection.prototype.disconnect = function() {
 
 BaseConnection.prototype.reconnect = function() {
   if (this.connected) {
-    clearInterval(this.reconnectionTimer);
+    this.stopReconnection();
   } else {
-    this.disconnect();
+    this.disconnect(true);
     this.connect();
   }
 }
@@ -150,7 +159,7 @@ BaseConnection.prototype.reportFocus = function(state) {
 _.extend(BaseConnection.prototype, EventEmitter.prototype);
 
 
-},{"../protocol":14,"events":20,"underscore":23}],4:[function(require,module,exports){
+},{"../protocol":12,"events":18,"underscore":21}],3:[function(require,module,exports){
 var BaseConnection = module.exports = require('./base')
   , _ = require('underscore');
 
@@ -221,7 +230,7 @@ BrowserConnection.prototype.stopFocusLoop = function() {
   delete this.focusDetectorTimer;
 }
 
-},{"./base":3,"underscore":23}],5:[function(require,module,exports){
+},{"./base":2,"underscore":21}],4:[function(require,module,exports){
 var process=require("__browserify_process");var Frame = require('./frame')
   , Hand = require('./hand')
   , Pointable = require('./pointable')
@@ -263,8 +272,8 @@ var process=require("__browserify_process");var Frame = require('./frame')
 
 
 var Controller = module.exports = function(opts) {
-  console.log(opts);
-  var inNode = (typeof(process) !== 'undefined' && process.versions && process.versions.node);
+  var inNode = (typeof(process) !== 'undefined' && process.versions && process.versions.node),
+    controller = this;
 
   opts = _.defaults(opts || {}, {
     inNode: inNode
@@ -274,13 +283,24 @@ var Controller = module.exports = function(opts) {
 
   opts = _.defaults(opts || {}, {
     frameEventName: this.useAnimationLoop() ? 'animationFrame' : 'deviceFrame',
-    suppressAnimationLoop: false
+    suppressAnimationLoop: !this.useAnimationLoop(),
+    loopWhileDisconnected: false,
+    useAllPlugins: false
   });
 
+  this.animationFrameRequested = false;
+  this.onAnimationFrame = function() {
+    controller.emit('animationFrame', controller.lastConnectionFrame);
+    if (controller.loopWhileDisconnected && (controller.connection.focusedState || controller.connection.opts.background) ){
+      window.requestAnimationFrame(controller.onAnimationFrame);
+    }else{
+      controller.animationFrameRequested = false;
+    }
+  }
   this.suppressAnimationLoop = opts.suppressAnimationLoop;
+  this.loopWhileDisconnected = opts.loopWhileDisconnected;
   this.frameEventName = opts.frameEventName;
-  console.log(this.frameEventName, this.suppressAnimationLoop, opts);
-  this.useAllPlugins = opts.useAllPlugins || false;
+  this.useAllPlugins = opts.useAllPlugins;
   this.history = new CircularBuffer(200);
   this.lastFrame = Frame.Invalid;
   this.lastValidFrame = Frame.Invalid;
@@ -335,23 +355,20 @@ Controller.prototype.inBackgroundPage = function(){
  * @returns the controller
  */
 Controller.prototype.connect = function() {
-  if ( this.connection.connect() ) this.runAnimationLoop();
+  this.connection.connect();
   return this;
 }
 
-Controller.prototype.runAnimationLoop = function(){
-  if (!this.inBrowser() || this.suppressAnimationLoop) return false;
 
-  var controller = this;
-  // explicitly named callback so that it shows up nicely in profiler
-  var leapAnimationFrame = function() {
-    controller.emit('animationFrame', controller.lastConnectionFrame);
-    if (controller.connection.focusedState){
-      window.requestAnimationFrame(leapAnimationFrame);
-    }
+Controller.prototype.connected = function() {
+  return !!this.connection.connected;
+}
+
+Controller.prototype.runAnimationLoop = function(){
+  if (!this.suppressAnimationLoop && !this.animationFrameRequested) {
+    this.animationFrameRequested = true;
+    window.requestAnimationFrame(this.onAnimationFrame);
   }
-  window.requestAnimationFrame(leapAnimationFrame);
-  return true;
 }
 
 /*
@@ -417,6 +434,7 @@ Controller.prototype.processFrame = function(frame) {
   }
   // lastConnectionFrame is used by the animation loop
   this.lastConnectionFrame = frame;
+  this.runAnimationLoop();
   this.emit('deviceFrame', frame);
 }
 
@@ -673,134 +691,7 @@ Controller.prototype.useRegisteredPlugins = function(){
 
 _.extend(Controller.prototype, EventEmitter.prototype);
 
-},{"./circular_buffer":2,"./connection/browser":4,"./connection/node":19,"./frame":7,"./gesture":8,"./hand":9,"./pipeline":12,"./pointable":13,"__browserify_process":21,"events":20,"underscore":23}],6:[function(require,module,exports){
-var Pointable = require('./pointable')
-  , _ = require('underscore');
-
-/**
-* Constructs a Finger object.
-*
-* An uninitialized finger is considered invalid.
-* Get valid Finger objects from a Frame or a Hand object.
-*
-* @class Finger
-* @memberof Leap
-* @classdesc
-* The Finger class reports the physical characteristics of a finger.
-*
-* Both fingers and tools are classified as Pointable objects. Use the
-* Pointable.tool property to determine whether a Pointable object represents a
-* tool or finger. The Leap classifies a detected entity as a tool when it is
-* thinner, straighter, and longer than a typical finger.
-*
-* Note that Finger objects can be invalid, which means that they do not
-* contain valid tracking data and do not correspond to a physical entity.
-* Invalid Finger objects can be the result of asking for a Finger object
-* using an ID from an earlier frame when no Finger objects with that ID
-* exist in the current frame. A Finger object created from the Finger
-* constructor is also invalid. Test for validity with the Pointable.valid
-* property.
-*/
-var Finger = module.exports = function(data) {
-  Pointable.call(this, data); // use pointable as super-constructor
-  
-  /**
-  * The position of the distal interphalangeal joint of the finger.
-  * This joint is closest to the tip.
-  * 
-  * The distal interphalangeal joint is located between the most extreme segment
-  * of the finger (the distal phalanx) and the middle segment (the intermediate
-  * phalanx).
-  *
-  * @member dipPosition
-  * @type {number[]}
-  * @memberof Leap.Finger.prototype
-  */  
-  this.dipPosition = data.dipPosition;
-
-  /**
-  * The position of the proximal interphalangeal joint of the finger. This joint is the middle
-  * joint of a finger.
-  *
-  * The proximal interphalangeal joint is located between the two finger segments
-  * closest to the hand (the proximal and the intermediate phalanges). On a thumb,
-  * which lacks an intermediate phalanx, this joint index identifies the knuckle joint
-  * between the proximal phalanx and the metacarpal bone.
-  *
-  * @member pipPosition
-  * @type {number[]}
-  * @memberof Leap.Finger.prototype
-  */  
-  this.pipPosition = data.pipPosition;
-
-  /**
-  * The position of the metacarpopophalangeal joint, or knuckle, of the finger.
-  *
-  * The metacarpopophalangeal joint is located at the base of a finger between
-  * the metacarpal bone and the first phalanx. The common name for this joint is
-  * the knuckle.
-  *
-  * On a thumb, which has one less phalanx than a finger, this joint index
-  * identifies the thumb joint near the base of the hand, between the carpal
-  * and metacarpal bones.
-  *
-  * @member mcpPosition
-  * @type {number[]}
-  * @memberof Leap.Finger.prototype
-  */  
-  this.mcpPosition = data.mcpPosition;
-
-  /**
-  * Whether or not this finger is in an extended posture.
-  *
-  * A finger is considered extended if it is extended straight from the hand as if
-  * pointing. A finger is not extended when it is bent down and curled towards the 
-  * palm.
-  * @member extended
-  * @type {Boolean}
-  * @memberof Leap.Finger.prototype
-  */
-  this.extended = data.extended;
-
-  /**
-  * An integer code for the name of this finger.
-  * 
-  * * 0 -- thumb
-  * * 1 -- index finger
-  * * 2 -- middle finger
-  * * 3 -- ring finger
-  * * 4 -- pinky
-  *
-  * @member type
-  * @type {number}
-  * @memberof Leap.Finger.prototype
-  */
-  this.type = data.type;
-  this.finger = true;
-  
-  /**
-  * The joint positions of this finger as an array in the order base to tip.
-  *
-  * @member positions
-  * @type {array[]}
-  * @memberof Leap.Finger.prototype
-  */
-  this.positions = [this.mcpPosition, this.pipPosition, this.dipPosition, this.tipPosition];
-};
-
-_.extend(Finger.prototype, Pointable.prototype);
-
-Finger.prototype.toString = function() {
-  if(this.tool == true){
-    return "Finger [ id:" + this.id + " " + this.length + "mmx | width:" + this.width + "mm | direction:" + this.direction + ' ]';
-  } else {
-    return "Finger [ id:" + this.id + " " + this.length + "mmx | direction: " + this.direction + ' ]';
-  }
-};
-
-Finger.Invalid = { valid: false };
-
-},{"./pointable":13,"underscore":23}],7:[function(require,module,exports){
+},{"./circular_buffer":1,"./connection/browser":3,"./connection/node":17,"./frame":5,"./gesture":6,"./hand":7,"./pipeline":10,"./pointable":11,"__browserify_process":19,"events":18,"underscore":21}],5:[function(require,module,exports){
 var Hand = require("./hand")
   , Pointable = require("./pointable")
   , createGesture = require("./gesture").createGesture
@@ -808,7 +699,6 @@ var Hand = require("./hand")
   , mat3 = glMatrix.mat3
   , vec3 = glMatrix.vec3
   , InteractionBox = require("./interaction_box")
-  , Finger = require('./finger')
   , _ = require("underscore");
 
 /**
@@ -924,6 +814,26 @@ var Frame = module.exports = function(data) {
   this.data = data;
   this.type = 'frame'; // used by event emitting
   this.currentFrameRate = data.currentFrameRate;
+  var handMap = {};
+  for (var handIdx = 0, handCount = data.hands.length; handIdx != handCount; handIdx++) {
+    var hand = new Hand(data.hands[handIdx]);
+    hand.frame = this;
+    this.hands.push(hand);
+    this.handsMap[hand.id] = hand;
+    handMap[hand.id] = handIdx;
+  }
+  for (var pointableIdx = 0, pointableCount = data.pointables.length; pointableIdx != pointableCount; pointableIdx++) {
+    var pointable = new Pointable(data.pointables[pointableIdx]);
+    pointable.frame = this;
+    this.pointables.push(pointable);
+    this.pointablesMap[pointable.id] = pointable;
+    (pointable.tool ? this.tools : this.fingers).push(pointable);
+    if (pointable.handId !== undefined && handMap.hasOwnProperty(pointable.handId)) {
+      var hand = this.hands[handMap[pointable.handId]];
+      hand.pointables.push(pointable);
+      (pointable.tool ? hand.tools : hand.fingers).push(pointable);
+    }
+  }
 
   if (data.gestures) {
    /**
@@ -940,45 +850,7 @@ var Frame = module.exports = function(data) {
       this.gestures.push(createGesture(data.gestures[gestureIdx]));
     }
   }
-    this.postprocessData(data);
-};
-
-Frame.prototype.postprocessData = function(data){
-    if (!data){
-        data = this.data;
-    }
-
-    for (var handIdx = 0, handCount = data.hands.length; handIdx != handCount; handIdx++) {
-        var hand = new Hand(data.hands[handIdx]);
-        hand.frame = this;
-        this.hands.push(hand);
-        this.handsMap[hand.id] = hand;
-    }
-    for (var pointableIdx = 0, pointableCount = data.pointables.length; pointableIdx != pointableCount; pointableIdx++) {
-        var pointableData = data.pointables[pointableIdx];
-        var pointable = pointableData.dipPosition ? new Finger(pointableData) : new Pointable(pointableData);
-        pointable.frame = this;
-        this.addPointable(pointable);
-    }
-};
-
-/**
- * Adds data from a pointable element into the pointablesMap; 
- * also adds the pointable to the frame.handsMap hand to which it belongs,
- * and to the hand's tools or hand's fingers map.
- * 
- * @param pointable {Object} a Pointable
- */
-Frame.prototype.addPointable = function(pointable){
-    this.pointables.push(pointable);
-    this.pointablesMap[pointable.id] = pointable;
-    (pointable.tool ? this.tools : this.fingers).push(pointable);
-    if (pointable.handId !== undefined && this.handsMap.hasOwnProperty(pointable.handId)) {
-        var hand = this.handsMap[pointable.handId];
-        hand.pointables.push(pointable);
-        (pointable.tool ? hand.tools : hand.fingers).push(pointable);
-    }
-};
+}
 
 /**
  * The tool with the specified ID in this frame.
@@ -1003,7 +875,7 @@ Frame.prototype.addPointable = function(pointable){
 Frame.prototype.tool = function(id) {
   var pointable = this.pointable(id);
   return pointable.tool ? pointable : Pointable.Invalid;
-};
+}
 
 /**
  * The Pointable object with the specified ID in this frame.
@@ -1027,7 +899,7 @@ Frame.prototype.tool = function(id) {
  */
 Frame.prototype.pointable = function(id) {
   return this.pointablesMap[id] || Pointable.Invalid;
-};
+}
 
 /**
  * The finger with the specified ID in this frame.
@@ -1052,7 +924,7 @@ Frame.prototype.pointable = function(id) {
 Frame.prototype.finger = function(id) {
   var pointable = this.pointable(id);
   return !pointable.tool ? pointable : Pointable.Invalid;
-};
+}
 
 /**
  * The Hand object with the specified ID in this frame.
@@ -1075,7 +947,7 @@ Frame.prototype.finger = function(id) {
  */
 Frame.prototype.hand = function(id) {
   return this.handsMap[id] || Hand.Invalid;
-};
+}
 
 /**
  * The angle of rotation around the rotation axis derived from the overall
@@ -1102,7 +974,7 @@ Frame.prototype.rotationAngle = function(sinceFrame, axis) {
   if (!this.valid || !sinceFrame.valid) return 0.0;
 
   var rot = this.rotationMatrix(sinceFrame);
-  var cs = (rot[0] + rot[4] + rot[8] - 1.0)*0.5;
+  var cs = (rot[0] + rot[4] + rot[8] - 1.0)*0.5
   var angle = Math.acos(cs);
   angle = isNaN(angle) ? 0.0 : angle;
 
@@ -1112,7 +984,7 @@ Frame.prototype.rotationAngle = function(sinceFrame, axis) {
   }
 
   return angle;
-};
+}
 
 /**
  * The axis of rotation derived from the overall rotational motion between
@@ -1285,7 +1157,7 @@ Frame.Invalid = {
   translation: function() { return vec3.create(); }
 };
 
-},{"./finger":6,"./gesture":8,"./hand":9,"./interaction_box":11,"./pointable":13,"gl-matrix":22,"underscore":23}],8:[function(require,module,exports){
+},{"./gesture":6,"./hand":7,"./interaction_box":9,"./pointable":11,"gl-matrix":20,"underscore":21}],6:[function(require,module,exports){
 var glMatrix = require("gl-matrix")
   , vec3 = glMatrix.vec3
   , EventEmitter = require('events').EventEmitter
@@ -1361,9 +1233,8 @@ var createGesture = exports.createGesture = function(data) {
       gesture = new KeyTapGesture(data);
       break;
     default:
-      throw "unknown gesture type";
+      throw "unkown gesture type";
   }
-
  /**
   * The gesture ID.
   *
@@ -1385,7 +1256,7 @@ var createGesture = exports.createGesture = function(data) {
   * @memberof Leap.Gesture.prototype
   * @type {Array}
   */
-  gesture.handIds = data.handIds.slice();
+  gesture.handIds = data.handIds;
  /**
   * The list of fingers and tools associated with this Gesture, if any.
   *
@@ -1395,7 +1266,7 @@ var createGesture = exports.createGesture = function(data) {
   * @memberof Leap.Gesture.prototype
   * @type {Array}
   */
-  gesture.pointableIds = data.pointableIds.slice();
+  gesture.pointableIds = data.pointableIds;
  /**
   * The elapsed duration of the recognized movement up to the
   * frame containing this Gesture object, in microseconds.
@@ -1770,7 +1641,7 @@ KeyTapGesture.prototype.toString = function() {
   return "KeyTapGesture ["+JSON.stringify(this)+"]";
 }
 
-},{"events":20,"gl-matrix":22,"underscore":23}],9:[function(require,module,exports){
+},{"events":18,"gl-matrix":20,"underscore":21}],7:[function(require,module,exports){
 var Pointable = require("./pointable")
   , glMatrix = require("gl-matrix")
   , mat3 = glMatrix.mat3
@@ -1940,18 +1811,6 @@ var Hand = module.exports = function(data) {
    * @type {number[]}
    */
    this.stabilizedPalmPosition = data.stabilizedPalmPosition;
-
-   /**
-   * Reports whether this is a left or a right hand.
-   *
-   * @member type
-   * @type {String}
-   * @memberof Leap.Hand.prototype
-   */
-   this.type = data.type;
-   this.grabStrength = data.grabStrength;
-   this.pinchStrength = data.pinchStrength;
-   this.confidence = data.confidence;
 }
 
 /**
@@ -1977,7 +1836,7 @@ var Hand = module.exports = function(data) {
  */
 Hand.prototype.finger = function(id) {
   var finger = this.frame.finger(id);
-  return (finger && (finger.handId == this.id)) ? finger : Pointable.Invalid;
+  return (finger && finger.handId == this.id) ? finger : Pointable.Invalid;
 }
 
 /**
@@ -2124,7 +1983,7 @@ Hand.prototype.translation = function(sinceFrame) {
  * @returns {String} A description of the Hand as a string.
  */
 Hand.prototype.toString = function() {
-  return "Hand (" + this.type + ") [ id: "+ this.id + " | palm velocity:"+this.palmVelocity+" | sphere center:"+this.sphereCenter+" ] ";
+  return "Hand [ id: "+ this.id + " | palm velocity:"+this.palmVelocity+" | sphere center:"+this.sphereCenter+" ] ";
 }
 
 /**
@@ -2198,7 +2057,6 @@ Hand.Invalid = {
   fingers: [],
   tools: [],
   pointables: [],
-  left: false,
   pointable: function() { return Pointable.Invalid },
   finger: function() { return Pointable.Invalid },
   toString: function() { return "invalid frame" },
@@ -2210,8 +2068,7 @@ Hand.Invalid = {
   translation: function() { return vec3.create(); }
 };
 
-},{"./pointable":13,"gl-matrix":22,"underscore":23}],10:[function(require,module,exports){
-require("./_header")
+},{"./pointable":11,"gl-matrix":20,"underscore":21}],8:[function(require,module,exports){
 /**
  * Leap is the global namespace of the Leap API.
  * @namespace Leap
@@ -2225,7 +2082,6 @@ module.exports = {
   InteractionBox: require("./interaction_box"),
   CircularBuffer: require("./circular_buffer"),
   UI: require("./ui"),
-  JSONProtocol: require("./protocol").JSONProtocol,
   glMatrix: require("gl-matrix"),
   mat3: require("gl-matrix").mat3,
   vec3: require("gl-matrix").vec3,
@@ -2267,7 +2123,7 @@ module.exports = {
       callback = opts;
       opts = {};
     }
-    opts.useAllPlugins || (opts.useAllPlugins = true)
+    (typeof opts.useAllPlugins == 'undefined') && (opts.useAllPlugins = true)
     if (!this.loopController) this.loopController = new this.Controller(opts);
     this.loopController.loop(callback);
     return this.loopController;
@@ -2281,7 +2137,7 @@ module.exports = {
   }
 }
 
-},{"./_header":1,"./circular_buffer":2,"./controller":5,"./frame":7,"./gesture":8,"./hand":9,"./interaction_box":11,"./pointable":13,"./protocol":14,"./ui":15,"./version.js":18,"gl-matrix":22}],11:[function(require,module,exports){
+},{"./circular_buffer":1,"./controller":4,"./frame":5,"./gesture":6,"./hand":7,"./interaction_box":9,"./pointable":11,"./ui":13,"./version.js":16,"gl-matrix":20}],9:[function(require,module,exports){
 var glMatrix = require("gl-matrix")
   , vec3 = glMatrix.vec3;
 
@@ -2423,7 +2279,7 @@ InteractionBox.prototype.toString = function() {
  */
 InteractionBox.Invalid = { valid: false };
 
-},{"gl-matrix":22}],12:[function(require,module,exports){
+},{"gl-matrix":20}],10:[function(require,module,exports){
 var Pipeline = module.exports = function (controller) {
   this.steps = [];
   this.controller = controller;
@@ -2477,7 +2333,7 @@ Pipeline.prototype.addWrappedStep = function (type, callback) {
   this.addStep(step);
   return step;
 };
-},{}],13:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var glMatrix = require("gl-matrix")
   , vec3 = glMatrix.vec3;
 
@@ -2670,7 +2526,11 @@ var Pointable = module.exports = function(data) {
  * @returns {String} A description of the Pointable object as a string.
  */
 Pointable.prototype.toString = function() {
-  return "Pointable [ id:" + this.id + " " + this.length + "mmx | width:" + this.width + "mm | direction:" + this.direction + ' ]';
+  if(this.tool == true){
+    return "Pointable [ id:" + this.id + " " + this.length + "mmx | with:" + this.width + "mm | direction:" + this.direction + ' ]';
+  } else {
+    return "Pointable [ id:" + this.id + " " + this.length + "mmx | direction: " + this.direction + ' ]';
+  }
 }
 
 /**
@@ -2694,11 +2554,8 @@ Pointable.prototype.hand = function(){
  */
 Pointable.Invalid = { valid: false };
 
-},{"gl-matrix":22}],14:[function(require,module,exports){
+},{"gl-matrix":20}],12:[function(require,module,exports){
 var Frame = require('./frame')
-  , Hand = require('./hand')
-  , Pointable = require('./pointable')
-  , Finger = require('./finger');
 
 var Event = function(data) {
   this.type = data.type;
@@ -2712,8 +2569,6 @@ var chooseProtocol = exports.chooseProtocol = function(header) {
     case 2:
     case 3:
     case 4:
-    case 5:
-    case 6:
       protocol = JSONProtocol(header.version, function(data) {
         return data.event ? new Event(data.event) : new Frame(data);
       });
@@ -2730,15 +2585,8 @@ var chooseProtocol = exports.chooseProtocol = function(header) {
   return protocol;
 }
 
-var JSONProtocol = exports.JSONProtocol = function(version) {
-  var protocol = function(data) {
-    if (data.event) {
-      return new Event(data.event);
-    } else {
-      var frame = new Frame(data);
-      return frame;
-    }
-  };
+var JSONProtocol = function(version, cb) {
+  var protocol = cb;
   protocol.encode = function(message) {
     return JSON.stringify(message);
   }
@@ -2748,12 +2596,12 @@ var JSONProtocol = exports.JSONProtocol = function(version) {
   return protocol;
 };
 
-},{"./finger":6,"./frame":7,"./hand":9,"./pointable":13}],15:[function(require,module,exports){
+},{"./frame":5}],13:[function(require,module,exports){
 exports.UI = {
   Region: require("./ui/region"),
   Cursor: require("./ui/cursor")
 };
-},{"./ui/cursor":16,"./ui/region":17}],16:[function(require,module,exports){
+},{"./ui/cursor":14,"./ui/region":15}],14:[function(require,module,exports){
 var Cursor = module.exports = function() {
   return function(frame) {
     var pointable = frame.pointables.sort(function(a, b) { return a.z - b.z })[0]
@@ -2764,7 +2612,7 @@ var Cursor = module.exports = function() {
   }
 }
 
-},{}],17:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter
   , _ = require('underscore')
 
@@ -2852,16 +2700,17 @@ Region.prototype.mapToXY = function(position, width, height) {
 }
 
 _.extend(Region.prototype, EventEmitter.prototype)
-},{"events":20,"underscore":23}],18:[function(require,module,exports){
+},{"events":18,"underscore":21}],16:[function(require,module,exports){
+// This file is automatically updated from package.json by grunt.
 module.exports = {
-  full: "0.4.1",
+  full: '0.4.3',
   major: 0,
   minor: 4,
-  dot: 1
+  dot: 3
 }
-},{}],19:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 
-},{}],20:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var process=require("__browserify_process");if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -3057,7 +2906,7 @@ EventEmitter.listenerCount = function(emitter, type) {
   return ret;
 };
 
-},{"__browserify_process":21}],21:[function(require,module,exports){
+},{"__browserify_process":19}],19:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -3111,7 +2960,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],22:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 /**
  * @fileoverview gl-matrix - High performance matrix and vector operations
  * @author Brandon Jones
@@ -6184,7 +6033,7 @@ if(typeof(exports) !== 'undefined') {
   })(shim.exports);
 })();
 
-},{}],23:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 //     Underscore.js 1.4.4
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
@@ -7412,7 +7261,7 @@ if(typeof(exports) !== 'undefined') {
 
 }).call(this);
 
-},{}],24:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 if (typeof(window) !== 'undefined' && typeof(window.requestAnimationFrame) !== 'function') {
   window.requestAnimationFrame = (
     window.webkitRequestAnimationFrame   ||
@@ -7425,5 +7274,5 @@ if (typeof(window) !== 'undefined' && typeof(window.requestAnimationFrame) !== '
 
 Leap = require("../lib/index");
 
-},{"../lib/index":10}]},{},[24])
-;
+},{"../lib/index":8}]},{},[22])
+;;
