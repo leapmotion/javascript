@@ -1,0 +1,93 @@
+<html>
+  <head>
+    <title>Pinch Strength Demo</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r66/three.js"></script>
+    <script src="//js.leapmotion.com/leap-0.6.0-beta1.min.js"></script>
+    <script src="//js.leapmotion.com/leap-plugins-0.1.4.1.min.js"></script>
+    <script src="//s3-us-west-2.amazonaws.com/s.cdpn.io/109794/leap.rigged-hand-0.1.0_3.js"></script>
+
+    <style class="codepen">
+      body{
+        font-family: Helvetica;
+      }
+      #output{
+        font-size: 100px;
+        color: darkBlue;
+        text-align: center;
+        position: fixed;
+        bottom: 6px;
+      }
+
+      #progress {
+        background: darkBlue;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        height: 16px;
+        width: 0%;
+      }
+      label{
+        position: fixed;
+        right: 10px;
+        bottom: 26px;
+        font-size: 33px;
+        font-family: "Courier New";
+        text-shadow: 0px 0px 1px #444;
+        color: #bbb;
+      }
+    </style>
+
+  </head>
+
+  <body>
+    <div id=output></div>
+    <div id=progress></div>
+    <label>pinchStrength</label>
+  </body>
+
+  <script type="text/javascript" class="codepen">
+    var output = document.getElementById('output'),
+        progress = document.getElementById('progress');
+
+    // Set up the controller:
+    Leap.loop({useAllPlugins: false}, function(frame){
+
+      if (frame.hands[0]){
+        output.innerHTML = frame.hands[0].pinchStrength.toPrecision(2);
+        progress.style.width = frame.hands[0].pinchStrength * 100 + '%';
+      }
+
+    })
+
+
+
+    // Adds the rigged hand and playback plugins
+    // to a given controller, providing a cool demo.
+    visualizeHand = function(controller){
+      // The leap-plugin file included above gives us a number of plugins out of the box
+      // To use a plugins, we call `.use` on the controller with options for the plugin.
+      // See js.leapmotion.com/plugins for more info
+
+      controller.use('playback', {
+          // This is a compressed JSON file of preprecorded frame data
+          recording: '//s3-us-west-2.amazonaws.com/s.cdpn.io/109794/pinch-half-res.json.lz',
+          // How long, in ms, between repeating the recording.
+          timeBetweenLoops: 1000,
+          pauseOnHand: true
+        });
+
+
+      controller.use('riggedHand', {
+        boneColors: function (boneMesh, leapHand){
+          if ((boneMesh.name.indexOf('Finger_0') == 0) || (boneMesh.name.indexOf('Finger_1') == 0)) {
+            return {
+              hue: 0.6,
+              saturation: leapHand.pinchStrength
+            }
+          }
+        }
+      })
+    }
+    visualizeHand(Leap.loopController)
+  </script>
+</html>
