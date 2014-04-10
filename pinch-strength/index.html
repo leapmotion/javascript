@@ -11,29 +11,25 @@
         font-family: Helvetica;
       }
       #output{
-        font-size: 100px;
-        color: darkBlue;
-        text-align: center;
+        font-size: 66px;
+        color: #005d98;
+        text-align: left;
         position: fixed;
-        bottom: 6px;
+        bottom: 18px;
+        font-family: 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif;
       }
 
       #progress {
-        background: darkBlue;
+        background: #005d98;
         position: fixed;
         bottom: 0;
         left: 0;
         height: 16px;
         width: 0%;
       }
-      label{
-        position: fixed;
-        right: 10px;
-        bottom: 26px;
-        font-size: 33px;
-        font-family: "Courier New";
-        text-shadow: 0px 0px 1px #444;
-        color: #bbb;
+      img#connect-leap{
+        /* this can be removed with leapjs-plugins 0.1.4.1 */
+        max-width: 100%;
       }
     </style>
 
@@ -42,7 +38,6 @@
   <body>
     <div id=output></div>
     <div id=progress></div>
-    <label>pinchStrength</label>
   </body>
 
   <script type="text/javascript" class="codepen">
@@ -72,17 +67,27 @@
           // This is a compressed JSON file of preprecorded frame data
           recording: '//s3-us-west-2.amazonaws.com/s.cdpn.io/109794/pinch-half-res.json.lz',
           // How long, in ms, between repeating the recording.
-          timeBetweenLoops: 1000,
-          pauseOnHand: true
+          timeBetweenLoops: 100000,
+          pauseOnHand: true,
+          autoPlay: true
         });
+      var overlay = controller.plugins.playback.player.overlay;
+      overlay.style.right = 0;
+      overlay.style.left = 'auto';
+      overlay.style.top = 'auto';
+      overlay.style.padding = 0;
+      overlay.style.bottom = '13px';
+      overlay.style.width = '180px';
 
 
       controller.use('riggedHand', {
+        scale: 1.5,
         boneColors: function (boneMesh, leapHand){
           if ((boneMesh.name.indexOf('Finger_0') == 0) || (boneMesh.name.indexOf('Finger_1') == 0)) {
             return {
-              hue: 0.6,
-              saturation: leapHand.pinchStrength
+              hue: 0.564,
+              saturation: leapHand.pinchStrength,
+              lightness: 0.6
             }
           }
         }
