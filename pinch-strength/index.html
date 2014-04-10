@@ -8,7 +8,7 @@
 
     <style class="codepen">
       body{
-        font-family: Helvetica;
+        font-family: 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif;
       }
       #output{
         font-size: 66px;
@@ -16,7 +16,6 @@
         text-align: left;
         position: fixed;
         bottom: 18px;
-        font-family: 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif;
       }
 
       #progress {
@@ -68,8 +67,7 @@
           recording: '//s3-us-west-2.amazonaws.com/s.cdpn.io/109794/pinch-half-res.json.lz',
           // How long, in ms, between repeating the recording.
           timeBetweenLoops: 100000,
-          pauseOnHand: true,
-          autoPlay: true
+          pauseOnHand: true
         });
       var overlay = controller.plugins.playback.player.overlay;
       overlay.style.right = 0;
