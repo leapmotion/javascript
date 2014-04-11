@@ -81,7 +81,7 @@
       controller.use('riggedHand', {
         scale: 1.5,
         boneColors: function (boneMesh, leapHand){
-          if ((boneMesh.name.indexOf('Finger_0') == 0) || (boneMesh.name.indexOf('Finger_1') == 0)) {
+          if (boneMesh.name.indexOf('Finger_') === 0) {
             return {
               hue: 0.564,
               saturation: leapHand.grabStrength,
