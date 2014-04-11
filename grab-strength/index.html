@@ -1,0 +1,96 @@
+<html>
+  <head>
+    <title>Grab Strength Demo</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r66/three.js"></script>
+    <script src="//js.leapmotion.com/leap-0.6.0-beta1.min.js"></script>
+    <script src="//js.leapmotion.com/leap-plugins-0.1.4.1.min.js"></script>
+    <script src="//s3-us-west-2.amazonaws.com/s.cdpn.io/109794/leap.rigged-hand-0.1.0_3.js"></script>
+
+    <style class="codepen">
+      body{
+        font-family: 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif;
+      }
+      #output{
+        font-size: 66px;
+        color: #005d98;
+        text-align: left;
+        position: fixed;
+        bottom: 18px;
+      }
+
+      #progress {
+        background: #005d98;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        height: 16px;
+        width: 0%;
+      }
+      img#connect-leap{
+        /* this can be removed with leapjs-plugins 0.1.4.1 */
+        max-width: 100%;
+      }
+    </style>
+
+  </head>
+
+  <body>
+    <div id=output></div>
+    <div id=progress></div>
+  </body>
+
+  <script type="text/javascript" class="codepen">
+    var output = document.getElementById('output'),
+        progress = document.getElementById('progress');
+
+    // Set up the controller:
+    Leap.loop({useAllPlugins: false}, function(frame){
+
+      if (frame.hands[0]){
+        output.innerHTML = frame.hands[0].grabStrength.toPrecision(2);
+        progress.style.width = frame.hands[0].grabStrength * 100 + '%';
+      }
+
+    })
+
+
+
+    // Adds the rigged hand and playback plugins
+    // to a given controller, providing a cool demo.
+    visualizeHand = function(controller){
+      // The leap-plugin file included above gives us a number of plugins out of the box
+      // To use a plugins, we call `.use` on the controller with options for the plugin.
+      // See js.leapmotion.com/plugins for more info
+
+      controller.use('playback', {
+          // This is a compressed JSON file of preprecorded frame data
+          recording: '//s3-us-west-2.amazonaws.com/s.cdpn.io/109794/fast-grab.json.lz',
+          // How long, in ms, between repeating the recording.
+          timeBetweenLoops: 1000,
+          pauseOnHand: true
+        });
+      var overlay = controller.plugins.playback.player.overlay;
+      overlay.style.right = 0;
+      overlay.style.left = 'auto';
+      overlay.style.top = 'auto';
+      overlay.style.padding = 0;
+      overlay.style.bottom = '13px';
+      overlay.style.width = '180px';
+
+
+      controller.use('riggedHand', {
+        scale: 1.5,
+        boneColors: function (boneMesh, leapHand){
+          if ((boneMesh.name.indexOf('Finger_0') == 0) || (boneMesh.name.indexOf('Finger_1') == 0)) {
+            return {
+              hue: 0.564,
+              saturation: leapHand.grabStrength,
+              lightness: 0.6
+            }
+          }
+        }
+      })
+    }
+    visualizeHand(Leap.loopController)
+  </script>
+</html>
