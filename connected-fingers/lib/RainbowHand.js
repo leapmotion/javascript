@@ -9,67 +9,81 @@
     this.pGeo = palmGeo || new THREE.CylinderGeometry( this.size / 10 , this.size / 10 , 1 , 100);
     this.material = new THREE.MeshNormalMaterial({ shading: THREE.SmoothShading });
 
-    this.connections  = [];
-    this.joints       = [];
+    var jMesh = new THREE.Mesh( this.jGeo , this.material );
+    var cMesh = new THREE.Mesh( this.cGeo , this.material );
+    var pMesh = new THREE.Mesh( this.pGeo , this.material );
+  
+    this.fingers = this.createFingers( jMesh , cMesh );
+    this.palm    = this.createPalm( jMesh , cMesh , pMesh );
+
 
     this.object       = new THREE.Object3D();
-    
-    this.createConnections( this.cGeo , this.material ); 
-    this.createJoints( this.jGeo , this.material );
-    this.createPalm( this.pGeo , this.material );
+   
 
   }
 
-  // To use your own geometry and materials, 
-  // just call this function with whichever geo and mat you desire
-  RainbowHand.prototype.createConnections = function( geo , material ){
 
-    this.connections = [];
+  RainbowHand.prototype.createFingers = function( jointMesh , connectionMesh ){
+
+    var fingers = [];
+
     for( var i = 0; i < 5; i++ ){
 
-      var connection = [];
-      for( var j = 0; j < 4; j++){
+      this.createFinger( jointMesh , connnectionMesh );
 
-        var mesh = new THREE.Mesh( geo , material );
-        connection.push( mesh );
-        this.object.add( mesh );
-
-      }
-      this.connections.push( connection );
-    }
-
-
-  }
-
-  // To use your own geometry and materials, 
-  // just call this function with whichever geo and mat you desire
-  RainbowHand.prototype.createJoints = function( geo , material ){
-
-    this.joints = [];
-    for( var i = 0; i <  5; i++ ){
-
-      var joint = [];
-      for(  var j = 0; j < 4; j++){
-
-        var mesh = new THREE.Mesh( geo , material );
-        joint.push( mesh );
-        this.object.add( mesh );
-
-      }
-      this.joints.push( joint );
     }
 
   }
 
-  // To use your own geometry and materials, 
-  // just call this function with whichever geo and mat you desire
-  RainbowHand.prototype.createPalm = function( geo , material ){
+  RainbowHand.prototype.createFinger = function( jointMesh , connectionMesh ){
+  
+    var finger = {
 
-    this.palm = new THREE.Mesh( geo , material );
-    this.object.add( this.palm );
-    
+      connections:[],
+      joints:[]
+
+    }
+
+    for( var i = 0; i < 3; i++ ){
+
+      var joint = jointMesh.clone();
+      var connection = connectionMesh.clone();
+
+      finger.connections.push( connection );
+      finger.joints.push( joint );
+
+    }
+
+    return finger;
+
   }
 
+
+  RainbowHand.prototype.createPalm = function( jointMesh , connectionMesh , centerMesh ){
+
+    var palm = {
+
+      connections:[],
+      joints:[],
+
+    }
+
+    for( var i = 0; i < 6; i++ ){
+
+      var joint = jointMesh.clone();
+      var connection = connectionMesh.clone();
+
+      finger.connections.push( connection );
+      finger.joints.push( joint );
+
+    }
+
+    palm.center = centerMesh.clone();
+
+    return finger;
+   
+
+  }
 
   RainbowHand.prototype.leapToScene = function( position ){
 
@@ -95,16 +109,56 @@
 
   RainbowHand.prototype.placePalm = function( hand ){
 
-    var handPos = this.leapToScene( hand.palmPosition );
+    var handPos         = this.leapToScene( hand.palmPosition );
+    var rotationMatrix  = this.rotationMatrix( hand.direction, hand.palmNormal );
+    
     this.palm.position = handPos;
-    var rotM = this.rotationMatrix( hand.direction, hand.palmNormal );
-    this.palm.rotation.setFromRotationMatrix( rotM.transpose() );
+    this.palm.rotation.setFromRotationMatrix( rotationMatrix.transpose() );
 
   }
 
+
+  RainbowHand.prototype.placeExtraPoints = function( fingers ){
+
+    var p1 = this.leapToScene( fingers[0].mcpPosition );
+    var p2 = this.leapToScene( fingers[1].mcpPosition );
+    var p3 = this.leapToScene( fingers[4].mcpPosition );
+
+
+    var dif = p1.clone().sub( p3 );
+
+    console.la
+    var center = p1.sub( dif.multiplyScalar( .5 ) );
+
+
+    var dif = center.clone().sub( p2 );
+
+    var rear = center.clone().add( dif );
+
+
+
+    this.rear.position  = rear;
+    this.center.position = center;
+
+   // console.log( this.center.position );
+
+    //this.rear.position = position;
+
+
+  }
+  
+  RainbowHand.prototype.placeCenter = function( hand ){
+
+    this.center.position = this.leapToScene( hand.palmPosition );
+
+  }
+
+
+
   RainbowHand.prototype.placeJoints = function( leapFinger , connections , joints ){
 
-    
+   
+    //console.log( leapFinger.type );
     for( var i = 0; i < 4; i++ ){
 
       var to = this.leapToScene( leapFinger.positions[i] );
@@ -113,7 +167,7 @@
       
       // If it is the first joint, connect from the hand
       if( i == 0 )
-        from = this.palm.position;
+        from = this.center.position;
       else
         from = this.leapToScene( leapFinger.positions[i-1] );
 
@@ -144,31 +198,71 @@
 
   }
 
+
+  RainbowHand.prototype.placeFinger = function( finger , leapFinger ){
+
+
+    for( var i = 0; i < 4; i++ ){
+
+    }
+
+
+  }
+  RainbowHand.prototype.placeFingers = function( leapFingers ){
+
+    for( var i = 0; i < 5; i++ ){
+
+      var leapFinger = leapFingers[i];
+  
+      var finger = this.fingers[i];
+
+      this.placeFinger( finger , leapFinger );
+
+    }
+
+
+  }
+
+  
+
   RainbowHand.prototype.update = function( handIndex ){
    
     this.frame = this.controller.frame();
 
     var hand = this.frame.hands[ handIndex ];
 
+    if( hand ){
+
+      var fingers = this.orderFingers( hand );
+
+      this.placeFingers( fingers );
+      this.placePalm( fingers );
+
+    }else{
+
+      this.removeFingers();
+      this.removePalm();
+
+    }
+
     // If the hand we pass through exists,
     // place the hand, otherwise, move the hand offscreen
     if( hand ){
       
-      this.placePalm( hand  );
+     // this.placePalm( hand );
+
+      // Makes sure that we always have the fingerts in proper order
+      var fingers = this.orderFingers( hand );
+
+      this.placeExtraPoints( fingers );
       
       for( var i = 0; i < 5; i ++ ){
 
-        var index = i;
+        var leapFinger    = fingers[i];
+        var connections  = this.connections[i];
+        var joints       = this.joints[i];
 
-        if( hand.fingers[i] ){
-
-          var leapFinger    = hand.fingers[i];
-          var fConnections  = this.connections[i];
-          var fJoints       = this.joints[i];
-
-          this.placeJoints( leapFinger , fConnections , fJoints );
-
-        }
+        this.placeJoints( leapFinger , connections , joints );
 
       } 
       
@@ -197,6 +291,16 @@
 
   }
 
+
+  RainbowHand.prototype.orderFingers = function( hand ){
+
+    var fingers = hand.fingers.sort( function( f1 , f2 ){ 
+      return f1.type < f2.type ? -1 : 1 
+    });
+
+    return fingers
+
+  }
 
   RainbowHand.prototype.fromToRotation = function( vec1 , vec2 ){
 
