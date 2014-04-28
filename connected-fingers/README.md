@@ -1,10 +1,11 @@
-Helper File to create a hand with connections.
+Connected Fingers 
+=====
+
+<img src="http://i.imgur.com/mMbt1Bi.png">
 
 To use do the following:
 
 Include the leap.js , three.js , and ConnectedHand.js
-
-<img src="http://i.imgur.com/mMbt1Bi.png">
 
 ```
 <script src="path/to/leap.js"></script>
