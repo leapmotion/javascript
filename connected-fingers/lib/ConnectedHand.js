@@ -1,5 +1,5 @@
 
-  function RainbowHand( controller , s , connectionGeo , jointGeo , palmGeo , material ){
+  function ConnectedHand( controller , s , jointMesh, connectionMesh , centerMesh ){
 
     this.controller = controller;
 
@@ -26,15 +26,14 @@
   
     this.createFingers( d.jointMesh , d.connectionMesh );
     this.createPalm( d.jointMesh , d.connectionMesh , d.centerMesh );
-   
-
+ 
+ 
   }
 
-  RainbowHand.prototype.createFingers = function( jointMesh , connectionMesh ){
+  ConnectedHand.prototype.createFingers = function( jointMesh , connectionMesh ){
 
     var jointMesh       = jointMesh       || this.defaults.jointMesh;
     var connectionMesh  = connectionMesh  || this.defaults.connectionMesh;
-
 
     if( this.fingers ) this.deleteFingers();
 
@@ -51,7 +50,7 @@
 
   }
 
-  RainbowHand.prototype.createFinger = function( jointMesh , connectionMesh ){
+  ConnectedHand.prototype.createFinger = function( jointMesh , connectionMesh ){
   
     var finger = {
 
@@ -78,13 +77,11 @@
   }
 
 
-  RainbowHand.prototype.createPalm = function( jointMesh , connectionMesh , centerMesh ){
-  
-    console.log( centerMesh );
-    jointMesh       = jointMesh       || this.defaults.jointMesh;
-    connectionMesh  = connectionMesh  || this.defaults.connectionMesh;
-    centerMesh      = centerMesh      || this.defaults.centerMesh;
-
+  ConnectedHand.prototype.createPalm = function( jointMesh , connectionMesh , centerMesh ){
+    
+    var jointMesh       = jointMesh       || this.defaults.jointMesh;
+    var connectionMesh  = connectionMesh  || this.defaults.connectionMesh;
+    var centerMesh      = centerMesh      || this.defaults.centerMesh;
 
     if( this.palm ) this.deletePalm();
 
@@ -117,7 +114,7 @@
   }
 
 
-  RainbowHand.prototype.placePalm = function( hand , fingers ){
+  ConnectedHand.prototype.placePalm = function( hand , fingers ){
 
 
     /*
@@ -180,7 +177,7 @@
   }
 
 
-  RainbowHand.prototype.placeFinger = function( finger , leapFinger ){
+  ConnectedHand.prototype.placeFinger = function( finger , leapFinger ){
 
     for( var i = 1; i < 4; i++ ){
 
@@ -196,7 +193,7 @@
 
   }
 
-  RainbowHand.prototype.placeFingers = function( leapFingers ){
+  ConnectedHand.prototype.placeFingers = function( leapFingers ){
 
     for( var i = 0; i < 5; i++ ){
 
@@ -211,7 +208,7 @@
 
   }
 
-  RainbowHand.prototype.placeConnection = function( connection , toPoint , fromPoint ){
+  ConnectedHand.prototype.placeConnection = function( connection , toPoint , fromPoint ){
 
     var toFromVec       = toPoint.clone().sub( fromPoint );
     var midPoint        = toFromVec.clone().multiplyScalar(.5);
@@ -228,7 +225,7 @@
 
   }
 
-  RainbowHand.prototype.deleteFingers = function(){
+  ConnectedHand.prototype.deleteFingers = function(){
 
     for( var i = 0; i< this.fingers.length; i++ ){
 
@@ -244,7 +241,7 @@
 
   }
 
-  RainbowHand.prototype.deletePalm = function(){
+  ConnectedHand.prototype.deletePalm = function(){
 
     for( var i =0; i < this.palm.joints.length; i++ ){
 
@@ -257,7 +254,7 @@
 
   }
 
-  RainbowHand.prototype.removeFingers = function(){
+  ConnectedHand.prototype.removeFingers = function(){
 
     for( var i = 0; i < 5; i++ ){
 
@@ -274,7 +271,7 @@
 
   }
 
-  RainbowHand.prototype.removePalm = function(){
+  ConnectedHand.prototype.removePalm = function(){
 
     for( var i = 0; i < this.palm.joints.length; i++ ){
 
@@ -288,11 +285,30 @@
   }
   
 
-  RainbowHand.prototype.update = function( handIndex ){
+  ConnectedHand.prototype.update = function( handIndex ){
    
+
+    if( !handIndex ) handIndex = 0;
+
     this.frame = this.controller.frame();
 
-    var hand = this.frame.hands[ handIndex ];
+    var hand;
+
+    if( typeof handIndex == 'number' ){
+
+      hand = this.frame.hands[ handIndex ];
+    
+    }else if( typeof handIndex == 'string' ){
+
+      for( var i = 0; i < this.frame.hands.length; i++ ){
+
+        if( handIndex == this.frame.hands[i].type ){
+          hand = this.frame.hands[i];
+        }
+
+      }
+
+    }
 
     if( hand ){
 
@@ -321,7 +337,20 @@
   
   */
 
-  RainbowHand.prototype.leapToScene = function( position ){
+  ConnectedHand.prototype.addToScene = function( scene ){
+
+    scene.add( this.object );
+
+  }
+
+  ConnectedHand.prototype.removeFromScene = function( scene ){
+
+    scene.remove( this.object );
+
+  }
+
+
+  ConnectedHand.prototype.leapToScene = function( position ){
 
     var p = this.frame.interactionBox.normalizePoint( position );
 
@@ -343,7 +372,7 @@
   }
 
 
-  RainbowHand.prototype.orderFingers = function( hand ){
+  ConnectedHand.prototype.orderFingers = function( hand ){
 
     var fingers = hand.fingers.sort( function( f1 , f2 ){ 
       return f1.type < f2.type ? -1 : 1 
@@ -353,7 +382,7 @@
 
   }
 
-  RainbowHand.prototype.fromToRotation = function( vec1 , vec2 ){
+  ConnectedHand.prototype.fromToRotation = function( vec1 , vec2 ){
 
     var axis = vec1.clone().cross( vec2 ).normalize();
 
@@ -364,7 +393,7 @@
 
   }
 
-  RainbowHand.prototype.rotationMatrix = function( vec1 , vec2 ){
+  ConnectedHand.prototype.rotationMatrix = function( vec1 , vec2 ){
 
     var a1 = new THREE.Vector3().fromArray( vec1 );
     var a2 = new THREE.Vector3().fromArray( vec2 );
