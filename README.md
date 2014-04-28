@@ -1,4 +1,4 @@
-Leap Motion Javascript Examples
+<img src="https://di4564baj7skl.cloudfront.net/assets/leapjs/leapjs-logo-270-6bbee8a1836a10769c1ba84951450006.png">
 =====
 
 <img src="https://di4564baj7skl.cloudfront.net/assets/mac-a3b33298ed46dbf8a36151ac0357dbef.png">
