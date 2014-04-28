@@ -1,10 +1,11 @@
 <html>
 <body>
 
-<script src = "https://js.leapmotion.com/leap-0.6.0-beta1.min.js"         ></script>
-<script src = "lib/three.min.js"      ></script>
-<script src = "lib/stats.min.js"      ></script>
-<script src = "lib/RainbowHand.js"    ></script>
+<!--<script src = "https://js.leapmotion.com/leap-0.6.0-beta1.min.js" ></script>-->
+<script src = "lib/leap.min.js" ></script>
+<script src = "lib/three.min.js"                                  ></script>
+<script src = "lib/stats.min.js"                                  ></script>
+<script src = "lib/RainbowHand.js"                                ></script>
 
 <script>
 
@@ -82,6 +83,58 @@
     scene.add( rainbowHand.object );
     //palmMesh = new THREE.Mesh( fGeo , material );
 
+    var geo = new THREE.CubeGeometry( 1 , 1 , 1 );
+    var mat = new THREE.MeshBasicMaterial({color:0xc0ffee, transparent:true,opacity:.5 });
+    var jointMesh = new THREE.Mesh( geo , mat );
+
+    var connectionMesh = new THREE.Mesh( geo , mat );
+    
+    var centerMesh = new THREE.Mesh( geo , mat );
+    centerMesh.scale.x = 10;
+    centerMesh.scale.z = 10;
+
+    var centerGeo = new THREE.Geometry();
+
+    for( var i =0; i < 6; i++ ){
+
+      var v1 = new THREE.Vector3();
+      var v2 = new THREE.Vector3();
+      centerGeo.vertices.push( v1 , v2 );
+
+    }
+
+    for( var  i = 0; i < 6; i++ ){
+
+      var past;
+      if( i == 0 )
+        past = 5;
+      else
+        past = i - 1;
+
+      var curIDs = [ 
+        i * 2 + 0 , 
+        i * 2 + 1
+      ];
+
+      var pastIDs = [
+        past * 2 + 0,
+        past * 2 + 1
+      ];
+
+
+
+
+
+
+      var curVerts  = [];
+      var pastVerts = [];
+
+
+
+
+    }
+    rainbowHand.createFingers( jointMesh , connectionMesh );
+    rainbowHand.createPalm( jointMesh , connectionMesh, centerMesh  );
 
 
     controller.connect();
