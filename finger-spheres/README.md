@@ -7,4 +7,4 @@ Visualizes your hand by placing a Sphere at every joint. Up to 4 hands can be vi
 
 ##API Methods
 * [Hands](https://developer.leapmotion.com/documentation/skeletal/javascript/api/Leap.Hand.html)
-* [Fingers](https://developer.leapmotion.com/documentation/skeletal/javascript/api/Leap.Finger.html)
+* [Fingers & Joints](https://developer.leapmotion.com/documentation/skeletal/javascript/api/Leap.Finger.html)
