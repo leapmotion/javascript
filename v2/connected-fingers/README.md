@@ -3,6 +3,8 @@ Connected Fingers
 
 <img src="http://i.imgur.com/mMbt1Bi.png" width="370" height="234">
 
+
+##Description
 To use do the following:
 
 Include the leap.js , three.js , and ConnectedHand.js
@@ -92,4 +94,9 @@ hand1.update( 'left' );
 hand2.update( 'right' );
 ```
 
-Any Further Questions, contact icohen@leapmotion.com || @cabbibo 
+##API methods
+* [Hands](https://developer.leapmotion.com/documentation/skeletal/javascript/api/Leap.Hand.html)
+* [Fingers](https://developer.leapmotion.com/documentation/skeletal/javascript/api/Leap.Finger.html)
+
+##Resources
+Any Further Questions, contact icohen@leapmotion.com || [@cabbibo](https://www.github.com/cabbibo) 
