@@ -8,6 +8,14 @@ The following repository contains Leap Motion SDK examples built with Javascript
 
 **NOTE**: The V1 Core Services tracking code is currently released to production for all consumers. 
 
+##V1: LeapJS Production API
+```javascript
+<script src="//js.leapmotion.com/leap-0.5.0.min.js"></script>
+```
+
+##Getting Started
+**Sorry, at this time, V1 Examples are only available on our [Leap Motion V1 Examples Gallery](https://developer.leapmotion.com/leapjs/examples)**
+
 ##Resources
 * Each Javascript project example folder has a short README
 * [Leap Motion API Docs (Javascript)](https://developer.leapmotion.com/documentation/javascript/index.html)
