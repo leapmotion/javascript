@@ -1,7 +1,7 @@
 Connected Fingers 
 =====
 
-<img src="http://i.imgur.com/mMbt1Bi.png">
+<img src="http://i.imgur.com/mMbt1Bi.png" width="370" height="234">
 
 To use do the following:
 
