@@ -8,7 +8,7 @@ The following repository contains Leap Motion SDK examples built with Javascript
 
 **NOTE**: The V2 Skeletal Beta code is NOT currently released to production for consumers. 
 
-##V2: LeapJS Beta API
+##V2: LeapJS Skeletal Beta API
 ```javascript
 <script src="//js.leapmotion.com/leap-0.6.0-beta2.min.js"></script>
 ```
