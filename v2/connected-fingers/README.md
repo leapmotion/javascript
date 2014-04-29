@@ -94,6 +94,25 @@ hand1.update( 'left' );
 hand2.update( 'right' );
 ```
 
+##Getting Started
+####1. Clone the GitHub repository and choose a project (i.e. connected-fingers):
+```bash
+git clone git@github.com:leapmotion-examples/javascript
+cd javascript/v2/connected-fingers
+```
+
+####2. You can use a basic [Node.js Web Server](https://www.npmjs.org/package/node-http-server) to serve your static file directory:
+```bash
+sudo npm install http-server -g
+cd <clone_directory>/javascript/v2/connected-fingers
+http-server
+```
+
+####3. You're done!
+* Move your hands above the Leap Motion Controller and you should see a simple 3D JS hand representation.
+* If not, see our [FAQ](https://developer.leapmotion.com/downloads/skeletal-beta/faq) section
+
+
 ##API methods
 * [Hands](https://developer.leapmotion.com/documentation/skeletal/javascript/api/Leap.Hand.html)
 * [Fingers](https://developer.leapmotion.com/documentation/skeletal/javascript/api/Leap.Finger.html)
