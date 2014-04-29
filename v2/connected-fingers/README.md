@@ -7,17 +7,16 @@ To use do the following:
 
 Include the leap.js , three.js , and ConnectedHand.js
 
-```
+```javascript
 <script src="path/to/leap.js"></script>
 <script src="path/to/three.js"></script>
 <script src="path/to/ConnectedHand.js"></script>
-
 ```
 
 Inside the Initialization function, set up your Leap Controller, 
 and as many Connected hand as your heart desires:
 
-```
+```javascript
 var controller;
 var hand1 , hand2;
 
@@ -36,9 +35,7 @@ function init(){
   // such as the camera
   hand1.addToScene( scene );
   hand2.addToScene( scene );
-
 }
-
 ```
 
 It is important to note that although there are predefined 
@@ -46,8 +43,7 @@ geometries / materials, you can pass whatever mesh you want
 into the connected hand. Below you can see us changing the way
 hand1 looks
 
-```
-
+```javascript
 // Inside of init function, after we have defined our hands
 
 var geo = new THREE.CubeGeometry( 1 , 1 , 1 );
@@ -70,7 +66,6 @@ centerMesh.scale.z = 10;
 // the old default meshes as well
 hand1.createFingers( jointMesh , connectionMesh );
 hand1.createPalm( jointMesh , connectionMesh, centerMesh  );
-
 ```
 
 
@@ -78,30 +73,23 @@ The Last thing you need to do is to make sure that once we have
 our hands, that they get updated on every frame. To do this
 all you need to do is:
 
-```
-
-function animate(){
-
+```javascript
+function animate() {
   // three.js render calls here
 
   // The number inside the update call is telling us
   // which leap hand to update compared to.
   hand1.update( 0 );
   hand2.update( 1 );
-
 }
-
-
 ```
 
 We can also define a hand to only update if it is a left
 or right hand like so:
 
-```
-
-  hand1.update( 'left' );
-  hand2.update( 'right' );
-
+```javascript
+hand1.update( 'left' );
+hand2.update( 'right' );
 ```
 
 Any Further Questions, contact icohen@leapmotion.com || @cabbibo 
