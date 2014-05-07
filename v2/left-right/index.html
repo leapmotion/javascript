@@ -9,7 +9,7 @@
     <style>
       body{
         font-family: 'Myriad Pro', Helvetica, Arial, 'Lucida Grande', sans-serif;
-        font-size: 36pt;
+        font-size: 24pt;
         color: white;
         background-color: #80b865;
       }
@@ -29,14 +29,19 @@
 
     Leap.loop({
       hand: function(hand){
-        var label = hand.data('label')
+        var label = hand.data('label');
 
 
         if (!label){
 
-          var label = document.createElement('label');
+          label = document.createElement('label');
           document.body.appendChild(label);
+
+          /**
+           * Here we set the label to show the hand type
+           */
           label.innerHTML = hand.type + " hand";
+
           hand.data('label', label)
 
         }
