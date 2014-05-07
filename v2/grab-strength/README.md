@@ -1,7 +1,7 @@
 Grab Strength
 =====
 
-<img src="https://lm-assets.s3.amazonaws.com/screenshots/grabstrength.png">
+[LIVE DEMO](https://developer.leapmotion.com/libraries/238)
 
 ##Description
 
