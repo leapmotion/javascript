@@ -30,7 +30,7 @@ http-server
 ##API Methods
 * [Hands](https://developer.leapmotion.com/documentation/skeletal/javascript/api/Leap.Hand.html)
 
-##License Details
+##Licensing Details
 The MIT License (MIT)
 
 Copyright (c) 2014 Leap Motion, Inc
