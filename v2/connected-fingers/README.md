@@ -120,7 +120,7 @@ http-server
 ##Resources
 Any Further Questions, contact icohen@leapmotion.com || [@cabbibo](https://www.github.com/cabbibo) 
 
-##License Details
+##Licensing Details
 The MIT License (MIT)
 
 Copyright (c) 2014 Leap Motion, Inc
