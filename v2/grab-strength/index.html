@@ -9,11 +9,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
 <html>
   <head>
     <title>Grab Strength Demo</title>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r67/three.js"></script>
-    <script src="//s3-us-west-2.amazonaws.com/s.cdpn.io/109794/leap-0.6.0-beta2-loop-hand.js"></script>
-    <script src="//js.leapmotion.com/leap-plugins-0.1.4.1.min.js"></script>
-    <script src="//s3-us-west-2.amazonaws.com/s.cdpn.io/109794/leap.playback-0.2.0.js"></script>
-    <script src="//js.leapmotion.com/leap.rigged-hand-0.1.1.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r67/three.js"></script>
+    <script src="http://js.leapmotion.com/leap-0.6.0.min.js"></script>
+    <script src="http://js.leapmotion.com/leap-plugins-0.1.6.js"></script>
+    <script src="http://js.leapmotion.com/leap.rigged-hand-0.1.4.min.js"></script>
 
 
     <style class="codepen">
@@ -57,12 +56,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
 		progress = document.getElementById('progress'); 
 	
 	// Set up the controller:
-	Leap.loop({background: true}, {hand: function(hand){
+	Leap.loop({background: true}, {
+
+    hand: function(hand){
 	  
-		output.innerHTML = hand.grabStrength.toPrecision(2);
-		progress.style.width = hand.grabStrength * 100 + '%';
+	  	output.innerHTML = hand.grabStrength.toPrecision(2);
+  		progress.style.width = hand.grabStrength * 100 + '%';
 	  
-	}})
+	  }
+  });
 	
 	
 	/*********************************************************
@@ -84,7 +86,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
 	
 	  controller.use('playback', {
 		// This is a compressed JSON file of preprecorded frame data
-		recording: '//s3-us-west-2.amazonaws.com/s.cdpn.io/109794/GrabStrength-110fps.json.lz',
+      recording: '//di4564baj7skl.cloudfront.net:80/assets/grab-bones-6-54fps.json-46e55c61be9a4a3cb95a4f688a2e609a.lz',
 		// How long, in ms, between repeating the recording.
 		timeBetweenLoops: 1000,
 		pauseOnHand: true
@@ -115,8 +117,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
 	  })
 	  
 	  var camera = controller.plugins.riggedHand.camera;  
-	  camera.position.set(0,3,-15);
-	  camera.lookAt(new THREE.Vector3(0,0,0));
+	  camera.position.set(0,20,-25);
+	  camera.lookAt(new THREE.Vector3(0,3,0));
 	}
 	visualizeHand(Leap.loopController);
   </script>
