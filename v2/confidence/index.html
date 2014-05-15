@@ -25,7 +25,7 @@ THE SOFTWARE.
   <head>
     <title>Hand Confidence Demo</title>
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r67/three.js"></script>
-    <script src="//js.leapmotion.com/leap-0.6.0-beta1.min.js"></script>
+    <script src="//js.leapmotion.com/leap-0.6.0.min.js"></script>
     <script src="//js.leapmotion.com/leap-plugins-0.1.6.min.js"></script>
     <script src="//js.leapmotion.com/leap.rigged-hand-0.1.4.min.js"></script>
 
@@ -53,6 +53,9 @@ THE SOFTWARE.
         /* this can be removed with leapjs-plugins 0.1.4.1 */
         max-width: 100%;
       }
+      small{
+        font-size: 16px;
+      }
     </style>
 
   </head>
@@ -66,13 +69,16 @@ THE SOFTWARE.
     var output = document.getElementById('output'),
         progress = document.getElementById('progress');
 
-    // Set up the controller:
-    Leap.loop({useAllPlugins: false}, function(frame){
-      if (frame.hands[0]){
-        output.innerHTML = frame.hands[0].confidence.toPrecision(2);
-        progress.style.width = frame.hands[0].confidence* 100 + '%';
-      }
+    capitaliseFirstLetter = function(string){
+      return string.charAt(0).toUpperCase() + string.slice(1)
+    };
 
+    // Set up the controller:
+    Leap.loop({useAllPlugins: false}, {
+      hand: function(hand) {
+        output.innerHTML = hand.confidence.toPrecision(2) + " <small>" + capitaliseFirstLetter(hand.type) + " hand </small>";
+        progress.style.width = hand.confidence * 100 + '%';
+      }
     });
 
 
@@ -87,7 +93,7 @@ THE SOFTWARE.
       controller.use('playback', {
         // This is a compressed JSON file of preprecorded frame data
         // The framerate is halved to 49fps for the web.
-        recording: 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/109794/confidence2-49fps.json.lz',
+        recording: 'confidence-bones-53fps.json.lz',
         // How long, in ms, between repeating the recording.
         timeBetweenLoops: 1000,
         pauseOnHand: true
