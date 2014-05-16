@@ -20,7 +20,7 @@ THE SOFTWARE.
 
 <html>
   <head>
-    <title>Grab Strength Demo</title>
+    <title>Pinch Strength Demo</title>
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r67/three.js"></script>
     <script src="//js.leapmotion.com/leap-0.6.0.js"></script>
     <script src="//js.leapmotion.com/leap-plugins-0.1.6.js"></script>
@@ -33,14 +33,14 @@ THE SOFTWARE.
 		}
 		#output{
 		  font-size: 66px;
-		  color: #B60F0F;
+		  color: #005d98;
 		  text-align: left;
 		  position: fixed;
 		  bottom: 18px;
 		}
 		
 		#progress {
-		  background: #B60F0F;
+		  background: #005d98;
 		  position: fixed;
 		  bottom: 0;
 		  left: 0;
@@ -72,8 +72,8 @@ THE SOFTWARE.
 
     hand: function(hand){
 	  
-		output.innerHTML = hand.grabStrength.toPrecision(2);
-		progress.style.width = hand.grabStrength * 100 + '%';
+		output.innerHTML = hand.pinchStrength.toPrecision(2);
+		progress.style.width = hand.pinchStrength * 100 + '%';
 	  
 	}
   });

@@ -99,11 +99,11 @@ THE SOFTWARE.
 	  // See js.leapmotion.com/plugins for more info
 	
 	  controller.use('playback', {
-		// This is a compressed JSON file of preprecorded frame data
+		  // This is a compressed JSON file of preprecorded frame data
       recording: '//di4564baj7skl.cloudfront.net/assets/grab-bones-7-54fps.json-46e55c61be9a4a3cb95a4f688a2e609a.lz',
-		// How long, in ms, between repeating the recording.
-		timeBetweenLoops: 1000,
-		pauseOnHand: true
+		  // How long, in ms, between repeating the recording.
+		  timeBetweenLoops: 1000,
+		  pauseOnHand: true
 	  }).on('riggedHand.meshAdded', function(handMesh, leapHand){
 		  handMesh.material.opacity = 1;
 	  });
@@ -122,7 +122,7 @@ THE SOFTWARE.
 		boneColors: function (boneMesh, leapHand){
 		  if ((boneMesh.name.indexOf('Finger_') == 0) ) {
 			return {
-			  hue: 1,
+			  hue: 0.564,
 			  saturation: leapHand.grabStrength,
 			  lightness: 0.5
 			}
