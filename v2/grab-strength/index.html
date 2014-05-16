@@ -64,7 +64,7 @@ THE SOFTWARE.
 
   <script type="text/javascript">
 	/********************************************************
-	* This is the actual example part where we call pinchStrength
+	* This is the actual example part where we call grabStrength
 	*****************************************************/
 	var output = document.getElementById('output'),
 		progress = document.getElementById('progress'); 
@@ -123,17 +123,17 @@ THE SOFTWARE.
 		  if ((boneMesh.name.indexOf('Finger_') == 0) ) {
 			return {
 			  hue: 1,
-			  saturation: leapHand.pinchStrength,
+			  saturation: leapHand.grabStrength,
 			  lightness: 0.5
 			}
 		  }
 		}
-	  })
+	  });
 	  
 	  var camera = controller.plugins.riggedHand.camera;  
 	  camera.position.set(0,20,-25);
 	  camera.lookAt(new THREE.Vector3(0,3,0));
-	}
+	};
 	visualizeHand(Leap.loopController);
   </script>
 </html>
