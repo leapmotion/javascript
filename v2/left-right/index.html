@@ -67,6 +67,10 @@
           document.body.removeChild(label);
           hand.data({label: undefined});
         }
+    })
+    .use('playback', {
+      recording: './left-or-right-77fps.json.lz',
+      timeBetweenLoops: 1000
     });
 
     riggedHandPlugin = Leap.loopController.plugins.riggedHand;
