@@ -1,0 +1,165 @@
+<!--
+The MIT License (MIT)
+Copyright (c) 2014 Leap Motion Inc
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+//-->
+
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Pinch Strength Demo</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r67/three.js"></script>
+    <script src="//js.leapmotion.com/leap-0.6.0.js"></script>
+    <script src="//js.leapmotion.com/leap-plugins-0.1.6.js"></script>
+    <script src="//js.leapmotion.com/leap.rigged-hand-0.1.4.min.js"></script>
+    <script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+
+
+    <style>
+      body{
+        font-family: 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif;
+      }
+      #output_rad, #output_deg{
+        font-size: 66px;
+        color: #005d98;
+        text-align: left;
+        position: fixed;
+        bottom: 18px;
+        cursor: pointer;
+      }
+      #output_rad{
+        display: none;
+      }
+
+      #progress {
+        background: #005d98;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        height: 16px;
+        width: 0%;
+      }
+      canvas{
+        z-index: -1;
+      }
+    </style>
+
+  </head>
+
+  <body>
+    <div id=output_rad></div>
+    <div id=output_deg></div>
+    <div id=progress></div>
+  </body>
+
+  <script type="text/javascript">
+
+	/********************************************************
+	* This is the actual example part where we call pinchStrength
+	*****************************************************/
+	var output_rad = document.getElementById('output_rad'),
+	  output_deg = document.getElementById('output_deg'),
+		progress = document.getElementById('progress');
+
+  window.TO_DEG = 180 / Math.PI;
+
+	// Set up the controller:
+	Leap.loop({background: true}, {
+
+    hand: function(hand){
+
+      var dotProduct = Leap.vec3.dot(
+          hand.indexFinger.proximal.direction(),
+          hand.middleFinger.proximal.direction()
+      );
+
+      var angle = Math.acos(dotProduct);
+
+      output_rad.innerHTML = (angle ).toPrecision(2) + ' rad';
+      output_deg.innerHTML = (angle * TO_DEG).toPrecision(2) + '°';
+
+      progress.style.width = angle * 100 + '%';
+	}
+  });
+
+  // handle rad/deg UI
+
+  $('#output_rad, #output_deg').click(function(){
+    $('#output_rad, #output_deg').toggle();
+  });
+
+
+	/*********************************************************
+	* End of the actual example
+	****************************************************/
+
+
+	/*********************************************************
+	* The rest of the code is here for visualizing the example. Feel
+	* free to remove it to experiment with the API value only
+	****************************************************/
+
+	// Adds the rigged hand and playback plugins
+	// to a given controller, providing a cool demo.
+	visualizeHand = function(controller){
+	  // The leap-plugin file included above gives us a number of plugins out of the box
+	  // To use a plugins, we call `.use` on the controller with options for the plugin.
+	  // See js.leapmotion.com/plugins for more info
+	
+	  controller.use('playback', {
+		  // This is a compressed JSON file of preprecorded frame data
+		  recording: 'finger-angle-43fps.json.lz',
+		  // How long, in ms, between repeating the recording.
+		  timeBetweenLoops: 1000,
+		  pauseOnHand: true
+	  }).on('riggedHand.meshAdded', function(handMesh, leapHand){
+		  handMesh.material.opacity = 1;
+	  });
+	  
+	  var overlay = controller.plugins.playback.player.overlay;
+	  overlay.style.right = 0;
+	  overlay.style.left = 'auto';
+	  overlay.style.top = 'auto';
+	  overlay.style.padding = 0;
+	  overlay.style.bottom = '13px';
+	  overlay.style.width = '180px';
+	
+	
+	  controller.use('riggedHand', {
+		scale: 1.3,
+		boneColors: function (boneMesh, leapHand){
+		  if ((boneMesh.name.indexOf('Finger_') == 0) ) {
+        if ((boneMesh.name.indexOf('Finger_10') == 0) ||
+            (boneMesh.name.indexOf('Finger_20') == 0)
+            ) {
+          return {
+            hue: 0.564,
+            saturation: 1,
+            lightness: 0.5
+          }
+        }
+		  }
+		}
+	  });
+	  
+    var camera = controller.plugins.riggedHand.camera;
+    camera.position.set(-8,8,20);
+    camera.lookAt(new THREE.Vector3(0,0,0));
+	};
+	visualizeHand(Leap.loopController);
+  </script>
+</html>
