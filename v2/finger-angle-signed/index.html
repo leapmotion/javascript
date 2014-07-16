@@ -21,9 +21,9 @@ THE SOFTWARE.
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Finger Angle</title>
+    <title>Signed Finger Angle</title>
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r67/three.js"></script>
-    <script src="//js.leapmotion.com/leap-0.6.0.js"></script>
+    <script src="//js.leapmotion.com/leap-0.6.1.js"></script>
     <script src="//js.leapmotion.com/leap-plugins-0.1.6.js"></script>
     <script src="//js.leapmotion.com/leap.rigged-hand-0.1.4.min.js"></script>
     <script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
@@ -61,6 +61,15 @@ THE SOFTWARE.
   </head>
 
   <body>
+    <p>
+      By comparing the cross of the finger directions to the palmNormal, we give a sign to the angle.  See
+      <a href="http://stackoverflow.com/questions/5188561/signed-angle-between-two-3d-vectors-with-same-origin-within-the-same-plane-reci?lq=1">
+        This Thread</a> for details.
+    </p>
+    <p>
+      Without doing this, crossed fingers and the peace sign would look the same.
+    </p>
+
     <div id=output_rad></div>
     <div id=output_deg></div>
     <div id=progress></div>
@@ -82,12 +91,19 @@ THE SOFTWARE.
 
     hand: function(hand){
 
-      var dotProduct = Leap.vec3.dot(
-          hand.indexFinger.proximal.direction(),
-          hand.middleFinger.proximal.direction()
-      );
+      var d1 = hand.indexFinger.proximal.direction(),
+          d2 = hand.middleFinger.proximal.direction();
 
-      var angle = Math.acos(dotProduct);
+      var angle = Math.acos(Leap.vec3.dot(d1, d2));
+
+      var cross = Leap.vec3.create();
+      Leap.vec3.cross(cross, d1, d2);
+
+      var dir = Leap.vec3.dot(hand.palmNormal, cross);
+
+      if (dir < 0) {
+        angle *= -1;
+      }
 
       output_rad.innerHTML = (angle ).toPrecision(2) + ' rad';
       output_deg.innerHTML = (angle * TO_DEG).toPrecision(2) + '°';
@@ -119,10 +135,10 @@ THE SOFTWARE.
 	  // The leap-plugin file included above gives us a number of plugins out of the box
 	  // To use a plugins, we call `.use` on the controller with options for the plugin.
 	  // See js.leapmotion.com/plugins for more info
-	
+
 	  controller.use('playback', {
 		  // This is a compressed JSON file of preprecorded frame data
-		  recording: 'finger-angle-43fps.json.lz',
+		  recording: 'finger-angle-signed-47fps.json.lz',
 		  // How long, in ms, between repeating the recording.
 		  timeBetweenLoops: 1000,
 		  pauseOnHand: true
@@ -137,7 +153,7 @@ THE SOFTWARE.
 	  overlay.style.padding = 0;
 	  overlay.style.bottom = '13px';
 	  overlay.style.width = '180px';
-	
+
 	
 	  controller.use('riggedHand', {
 		scale: 1.3,
