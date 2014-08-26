@@ -26,7 +26,7 @@
   });
 
   controller.use('playback', {
-    recording: 'top-down-pinch-37fps.json.lz',
+    recording: 'leap-playback-recording-57fps.json.lz',
     loop: false
   });
 
@@ -40,12 +40,12 @@
     hand.data('light', light);
     lightVisualizer.position = light.position;
     lightVisualizer.visible = true;
-    hand.data('lightVisualizer', lightVisualizer);
-    return console.log(hand.data('light'), hand.data('lightVisualizer'));
+    return hand.data('lightVisualizer', lightVisualizer);
   };
 
   releaseLight = function(hand) {
     var light, lightVisualizer;
+    console.log('hand lost');
     light = hand.data('light');
     if (!light) {
       return;
@@ -56,8 +56,7 @@
     lightVisualizer = hand.data('lightVisualizer');
     lightVisualizer.visible = false;
     window.lightVisualizers.push(lightVisualizer);
-    hand.data('lightVisualizer', null);
-    return console.log('remove light');
+    return hand.data('lightVisualizer', null);
   };
 
   positionLight = function(hand) {
@@ -89,14 +88,5 @@
   controller.on('handLost', releaseLight);
 
   controller.on('hand', positionLight);
-
-  document.body.onkeydown = function(e) {
-    switch (e.which) {
-      case 32:
-        return scope.pause();
-      default:
-        return console.log("unbound keycode: " + e.which);
-    }
-  };
 
 }).call(this);

@@ -30,7 +30,7 @@ controller.use('riggedHand', {
 })
 
 controller.use 'playback', {
-  recording: 'top-down-pinch-37fps.json.lz'
+  recording: 'leap-playback-recording-57fps.json.lz'
   loop: false
 }
 
@@ -52,10 +52,9 @@ makeLight = (hand)->
   lightVisualizer.visible = true
   hand.data('lightVisualizer', lightVisualizer)
 
-  console.log hand.data('light'), hand.data('lightVisualizer')
-
 
 releaseLight = (hand)->
+  console.log 'hand lost'
   light = hand.data('light')
   return unless light
 
@@ -68,7 +67,6 @@ releaseLight = (hand)->
   window.lightVisualizers.push(lightVisualizer)
   hand.data('lightVisualizer', null)
 
-  console.log 'remove light'
 
 
 positionLight = (hand)->
@@ -106,18 +104,7 @@ positionLight = (hand)->
 
 
 
-
-
 controller.on 'handLost',  releaseLight
 controller.on 'hand',      positionLight
 
 
-
-
-
-document.body.onkeydown = (e)->
-  switch e.which
-    when 32
-      scope.pause()
-    else
-      console.log "unbound keycode: #{e.which}"

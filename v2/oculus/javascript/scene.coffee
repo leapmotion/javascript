@@ -1,10 +1,7 @@
-paused = false
 window.scope = {
   x: 0
   y: 0
   light1position: new THREE.Vector3(1, 1, 1)
-  pause: ->
-    paused = !paused
   rate: 1
 }
 
@@ -14,6 +11,9 @@ window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.inner
 
 renderer = new THREE.WebGLRenderer({antialias: true})
 renderer.setSize window.innerWidth, window.innerHeight
+
+window.effect = new THREE.OculusRiftEffect(renderer, { worldScale: 2 } );
+window.effect.setSize( window.innerWidth, window.innerHeight );
 
 renderer.shadowMapEnabled = true;
 
@@ -39,13 +39,8 @@ cube2.receiveShadow = true
 scene.add cube2
 
 
-camera.position.fromArray([0, 160, 400])
+camera.position.fromArray([0, 160, 200])
 camera.lookAt(new THREE.Vector3(0, 0, 0))
-
-
-#ambientLight = new THREE.DirectionalLight( 0xffffff, 2 )
-#ambientLight.position.set( 0, -1, 0 )
-#scene.add ambientLight
 
 
 window.lights = []
@@ -76,17 +71,12 @@ createLight()
 
 
 render = ->
-  unless paused
-    window.scope.x += scope.rate * 0.004
-    window.scope.y += scope.rate * 0.002
+  cube.rotation.x += scope.rate * 0.004
+  cube.rotation.y += scope.rate * 0.002
+  cube2.rotation.x += scope.rate * 0.004
+  cube2.rotation.y += scope.rate * 0.002
 
-    cube2.rotation.x += scope.rate * 0.004
-    cube2.rotation.y += scope.rate * 0.002
-
-  cube.rotation.x = window.scope.x
-  cube.rotation.y = window.scope.y
-
-  renderer.render scene, camera
+  effect.render scene, camera
 
   requestAnimationFrame render
 
