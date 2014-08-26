@@ -31,7 +31,7 @@ controller.use('riggedHand', {
 
 controller.use 'playback', {
   recording: 'leap-playback-recording-57fps.json.lz'
-  loop: false
+  resumeOnHandLost: false
 }
 
 controller.connect()
@@ -54,7 +54,6 @@ makeLight = (hand)->
 
 
 releaseLight = (hand)->
-  console.log 'hand lost'
   light = hand.data('light')
   return unless light
 

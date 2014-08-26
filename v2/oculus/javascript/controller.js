@@ -27,7 +27,7 @@
 
   controller.use('playback', {
     recording: 'leap-playback-recording-57fps.json.lz',
-    loop: false
+    resumeOnHandLost: false
   });
 
   controller.connect();
@@ -45,7 +45,6 @@
 
   releaseLight = function(hand) {
     var light, lightVisualizer;
-    console.log('hand lost');
     light = hand.data('light');
     if (!light) {
       return;
