@@ -41,33 +41,34 @@ controller.connect()
 
 
 # the following three methods are bound in controller.coffee
-createLight = (hand)->
+makeLight = (hand)->
+  light = window.lights.pop()
+  lightVisualizer = window.lightVisualizers.pop()
 
-#  window.light = new THREE.PointLight( 0xffffff, 8, 1000 )
-#  scene.add light
+  light.intensity = 8
+  hand.data('light', light)
 
-#  light = new THREE.PointLight( 0xffffff, 8, 10000 )
-#  scene.add light
-#  hand.data('light', light)
-#  console.log 'added light', light
+  lightVisualizer.position = light.position
+  lightVisualizer.visible = true
+  hand.data('lightVisualizer', lightVisualizer)
 
-#  lightVisualizer = new THREE.Mesh(
-#    new THREE.SphereGeometry( 4 )
-#    new THREE.MeshBasicMaterial(0x555555)
-#  )
-#  lightVisualizer.position = light.position
-#  scene.add lightVisualizer
-#  hand.data('lightVisualizer', lightVisualizer)
+  console.log hand.data('light'), hand.data('lightVisualizer')
 
 
-removeLight = (hand)->
+releaseLight = (hand)->
   light = hand.data('light')
-  scene.remove light
+  return unless light
+
+  light.intensity = 0
+  window.lights.push(light)
   hand.data('light', null)
 
   lightVisualizer = hand.data('lightVisualizer')
-  scene.remove lightVisualizer
+  lightVisualizer.visible = false
+  window.lightVisualizers.push(lightVisualizer)
   hand.data('lightVisualizer', null)
+
+  console.log 'remove light'
 
 
 positionLight = (hand)->
@@ -76,29 +77,38 @@ positionLight = (hand)->
   # z range is roughly -50 to -300
 
   handMesh = hand.data('riggedHand.mesh')
-  light = hand.data('light')
 
   # we could set the position of the light to the thumb or index finger, but this would make it too easy to bump
   # the object when letting go.  Instead, we do palmPosition with offset.
   if hand.pinchStrength > 0.5
-    pos = Leap.vec3.clone(hand.palmPosition)
+    unless hand.data('pinching')
+      makeLight(hand)
+      hand.data('pinching', true)
 
-    offsetDown = Leap.vec3.clone(hand.palmNormal)
-    Leap.vec3.multiply(offsetDown, offsetDown, [13,13,13])
-    Leap.vec3.add(pos, pos, offsetDown)
+    if light = hand.data('light')
 
-    offsetForward = Leap.vec3.clone(hand.direction)
-    Leap.vec3.multiply(offsetForward, offsetForward, [13,13,13])
-    Leap.vec3.add(pos, pos, offsetForward)
+      pos = Leap.vec3.clone(hand.palmPosition)
 
-#    handMesh.scenePosition(pos, light.position)
-    handMesh.scenePosition(pos, window.light.position)
+      offsetDown = Leap.vec3.clone(hand.palmNormal)
+      Leap.vec3.multiply(offsetDown, offsetDown, [50,50,50])
+      Leap.vec3.add(pos, pos, offsetDown)
+
+      offsetForward = Leap.vec3.clone(hand.direction)
+      Leap.vec3.multiply(offsetForward, offsetForward, [30,30,30])
+      Leap.vec3.add(pos, pos, offsetForward)
+
+      handMesh.scenePosition(pos, light.position)
+
+  else
+    if hand.data('pinching')
+      releaseLight(hand)
+      hand.data('pinching', false)
 
 
 
 
-controller.on 'handFound', createLight
-controller.on 'handLost',  removeLight
+
+controller.on 'handLost',  releaseLight
 controller.on 'hand',      positionLight
 
 

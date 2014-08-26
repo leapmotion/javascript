@@ -43,25 +43,36 @@ camera.position.fromArray([0, 160, 400])
 camera.lookAt(new THREE.Vector3(0, 0, 0))
 
 
-ambientLight = new THREE.DirectionalLight( 0xffffff, 2 )
-ambientLight.position.set( 0, -1, 0 )
+#ambientLight = new THREE.DirectionalLight( 0xffffff, 2 )
+#ambientLight.position.set( 0, -1, 0 )
 #scene.add ambientLight
 
 
+window.lights = []
+window.lightVisualizers = []
+
+# the following three methods are bound in controller.coffee
+createLight = ->
+  light = new THREE.PointLight( 0xffffff, 0, 1000 )
+  scene.add light
+  lights.push light
+
+  lightVisualizer = new THREE.Mesh(
+    new THREE.SphereGeometry( 4 )
+    new THREE.MeshBasicMaterial(0x555555)
+  )
+  scene.add(lightVisualizer)
+  lightVisualizer.visible = false
+  lightVisualizers.push lightVisualizer
 
 
-#light = new THREE.PointLight( 0xffffff, 8, 100 )
+# we support up to four hands in a scene at once
+# THREE.js requires all lights to be in a scene before rendering
+createLight()
+createLight()
+createLight()
+createLight()
 
-light = new THREE.DirectionalLight( 0xffffff, 2 )
-scene.add light
-
-
-lightVisualizer = new THREE.Mesh(
-  new THREE.SphereGeometry( 4 )
-  new THREE.MeshBasicMaterial(0x555555)
-)
-lightVisualizer.position = light.position
-scene.add lightVisualizer
 
 
 render = ->
