@@ -3,6 +3,7 @@ window.controller = controller = (new Leap.Controller({background: true}))
 # this transforms the entire leap coordinate space
 # note the usage of Euler rotation, first around the Z axis to right the hand,
 # and then a lesser amount around the X give us a top-down perspective
+# units are radians and mm.
 controller.use('transform', {
   quaternion: (new THREE.Quaternion).setFromEuler(
     new THREE.Euler(
@@ -40,7 +41,6 @@ controller.connect()
 
 
 
-# the following three methods are bound in controller.coffee
 makeLight = (hand)->
   light = window.lights.pop()
   lightVisualizer = window.lightVisualizers.pop()
@@ -69,9 +69,6 @@ releaseLight = (hand)->
 
 
 positionLight = (hand)->
-  # x range: -100 to 100
-  # y range: -100 to 100ish
-  # z range is roughly -50 to -300
 
   handMesh = hand.data('riggedHand.mesh')
 
