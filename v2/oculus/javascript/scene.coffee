@@ -12,10 +12,22 @@ window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.inner
 renderer = new THREE.WebGLRenderer({antialias: true})
 renderer.setSize window.innerWidth, window.innerHeight
 
-window.effect = new THREE.OculusRiftEffect(renderer, { worldScale: 2 } );
-window.effect.setSize( window.innerWidth, window.innerHeight );
+effect = new THREE.OculusRiftEffect(renderer, { worldScale: 2 } );
+effect.setSize( window.innerWidth, window.innerHeight );
 
 renderer.shadowMapEnabled = true;
+
+
+
+onResize = ->
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize( window.innerWidth, window.innerHeight );
+  effect.setSize( window.innerWidth, window.innerHeight );
+
+window.addEventListener( 'resize', onResize , false );
+
 
 
 document.body.appendChild renderer.domElement
