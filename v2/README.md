@@ -10,7 +10,7 @@ The following repository contains Leap Motion SDK examples built with Javascript
 
 ##V2: LeapJS Skeletal Beta API
 ```javascript
-<script src="//js.leapmotion.com/leap-0.6.0-beta2.min.js"></script>
+<script src="//js.leapmotion.com/leap-0.6.2.min.js"></script>
 ```
 
 ##Getting Started
