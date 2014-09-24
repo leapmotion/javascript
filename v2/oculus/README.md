@@ -1,4 +1,5 @@
-Move lights around a THREE.js scene.
+Move lights around a THREE.js VR scene
+======================================
 
 Right now, only one light can be controlled.  A few things could be explored next:
  - Manipulate different objects, by focusing the closest one on pinch.
