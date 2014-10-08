@@ -3,7 +3,8 @@
   var controller, makeLight, positionLight, releaseLight;
 
   window.controller = controller = new Leap.Controller({
-    background: true
+    background: true,
+    optimizeHMD: true
   });
 
   controller.use('transform', {

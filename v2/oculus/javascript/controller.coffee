@@ -1,4 +1,7 @@
-window.controller = controller = (new Leap.Controller({background: true}))
+window.controller = controller = (new Leap.Controller({
+  background: true
+  optimizeHMD: true
+}))
 
 # this transforms the entire leap coordinate space
 # note the usage of Euler rotation, first around the Z axis to right the hand,
