@@ -12,11 +12,19 @@ window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.inner
 renderer = new THREE.WebGLRenderer({antialias: true})
 renderer.setSize window.innerWidth, window.innerHeight
 
-effect = new THREE.OculusRiftEffect(renderer, { worldScale: 2 } );
-effect.setSize( window.innerWidth, window.innerHeight );
+
+vrEffect = new THREE.VREffect( renderer );
+vrControls = new THREE.VRControls( camera );
+
+onkey = (event) ->
+  if event.key == 'z'
+    vrControls.zeroSensor()
+  if event.key == 'f'
+    vrEffect.setFullScreen true;
+
+window.addEventListener("keypress", onkey, true);
 
 renderer.shadowMapEnabled = true;
-
 
 
 onResize = ->
@@ -24,7 +32,6 @@ onResize = ->
   camera.updateProjectionMatrix();
 
   renderer.setSize( window.innerWidth, window.innerHeight );
-  effect.setSize( window.innerWidth, window.innerHeight );
 
 window.addEventListener( 'resize', onResize , false );
 
@@ -88,7 +95,9 @@ render = ->
   cube2.rotation.x += scope.rate * 0.004
   cube2.rotation.y += scope.rate * 0.002
 
-  effect.render scene, camera
+  vrControls.update()
+
+  vrEffect.render scene, camera
 
   requestAnimationFrame render
 
