@@ -67,6 +67,15 @@ function Cloth(w, h) {
 	this.w = w;
 	this.h = h;
 
+  this.geometry = new THREE.ParametricGeometry(
+    this.particlePosition, // this sets the initial position, and is effectively unused
+    this.w,
+    this.h
+  );
+
+  this.geometry.dynamic = true;
+  this.geometry.computeFaceNormals(); // why ?
+
   this.springLength = 25;
 	this.width = this.springLength * this.w;
 	this.height = this.springLength * this.h;
@@ -226,6 +235,19 @@ Cloth.prototype.simulate = function(time) {
 		particle.position.copy(particle.originalPosition);
 		particle.lastPosition.copy(particle.originalPosition); // ?
 	}
+  
+  
+  for ( var i = 0, il = particles.length; i < il; i ++ ) {
+
+    this.geometry.vertices[ i ].copy( particles[ i ].position );
+
+  }
+
+  this.geometry.computeFaceNormals();
+  this.geometry.computeVertexNormals();
+
+  this.geometry.normalsNeedUpdate = true;
+  this.geometry.verticesNeedUpdate = true;
 
   return this;
 };

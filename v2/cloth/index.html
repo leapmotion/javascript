@@ -42,7 +42,6 @@
 	<body>
 		<div id="info">Simple Cloth Simulation<br/>
 			Verlet integration with Constrains relaxation<br/>
-			Toggle: <a onclick="rotate = !rotate;">Camera</a> |
 			<a onclick="sphere.visible = !sphere.visible;">Ball</a>
 		</div>
 
@@ -50,6 +49,7 @@
     <script src="//js.leapmotion.com/leap-0.6.3.min.js"></script>
     <script src="js/leap-plugins-0.1.9pre.js"></script>
     <script src="js/leap.pinchEvent.js"></script>
+		<script src="js/Stats.js"></script>
 
 		<script src="js/Cloth.js"></script>
 
@@ -97,25 +97,23 @@
 
 		<script>
 
-			/* testing cloth simulation */
+      var stats = new Stats();
+      stats.setMode(1); // 0: fps, 1: ms
 
-      var cloth = new Cloth(10, 10);
 
+      // Align top-left
+      stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+      document.body.appendChild( stats.domElement );
 
-      // Four corners:
-
-      cloth.pinAt(0,0);
-      cloth.pinAt(0,10);
-      cloth.pinAt(10,0);
-      cloth.pinAt(10,10);
 
 			var camera, scene, renderer;
 
-			var clothGeometry;
+			var
+          cloth;
 			var sphere;
 			var object, arrow;
-
-			var rotate = false;
 
       Leap.loop({background: true})
         .use('transform', {
@@ -183,12 +181,19 @@
 				scene.add( light );
 
 
+        cloth = new Cloth(10, 10);
+
+        // Four corners:
+        cloth.pinAt(0,0);
+        cloth.pinAt(0,10);
+        cloth.pinAt(10,0);
+        cloth.pinAt(10,10);
 
 				// cloth material
 
 				var clothTexture = THREE.ImageUtils.loadTexture( 'LARGE-3-420 oiling 9000.Tif.jpg' );
 				clothTexture.wrapS = clothTexture.wrapT = THREE.RepeatWrapping;
-//				clothTexture.anisotropy = 16;
+				clothTexture.anisotropy = 16;
 
 				var clothMaterial = new THREE.MeshPhongMaterial( {
           alphaTest: 0.5,
@@ -202,24 +207,13 @@
 //          wireframe: true
         } );
 
-				// cloth geometry
-				clothGeometry = new THREE.ParametricGeometry(
-            cloth.particlePosition, // this sets the initial position, and is effectively unused
-            cloth.w,
-            cloth.h
-        );
-
-
-				clothGeometry.dynamic = true;
-				clothGeometry.computeFaceNormals();
-
 				var uniforms = { texture:  { type: "t", value: clothTexture } };
 				var vertexShader = document.getElementById( 'vertexShaderDepth' ).textContent;
 				var fragmentShader = document.getElementById( 'fragmentShaderDepth' ).textContent;
 
 				// cloth mesh
 
-				object = new THREE.Mesh( clothGeometry, clothMaterial );
+				object = new THREE.Mesh( cloth.geometry, clothMaterial );
 				object.position.set( 0, 0, 0 );
 				object.castShadow = true;
 				object.receiveShadow = true;
@@ -273,60 +267,31 @@
 
 			}
 
-			//
-
 			function onWindowResize() {
-
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
-
 			}
 
-			//
 
 			function animate() {
-
 				requestAnimationFrame( animate );
 
-				var time = Date.now();
 
-				cloth.simulate(time);
+        stats.begin();
+
+				cloth.simulate(Date.now());
 				render();
+
+        stats.end();
 
 			}
 
 			function render() {
 
-
-        // this is all rediculous, and should be moved within cloth.simulate. Maybe once we get it working the way we want more.
-				var timer = Date.now() * 0.0002;
-
-				var particles = cloth.particles;
-
-				for ( var i = 0, il = particles.length; i < il; i ++ ) {
-
-					clothGeometry.vertices[ i ].copy( particles[ i ].position );
-
-				}
-
-				clothGeometry.computeFaceNormals();
-				clothGeometry.computeVertexNormals();
-
-				clothGeometry.normalsNeedUpdate = true;
-				clothGeometry.verticesNeedUpdate = true;
-
-        // end rediculousness
-
 				sphere.position.copy( ballPosition );
 
-				if ( rotate ) {
-
-					camera.position.x = Math.cos( timer ) * 1500;
-					camera.position.z = Math.sin( timer ) * 1500;
-
-				}
 
 				camera.lookAt( scene.position.clone().setX(125) );
 
