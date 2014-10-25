@@ -218,7 +218,11 @@
         } );
 
 				// cloth geometry
-				clothGeometry = new THREE.ParametricGeometry( cloth.particlePosition, cloth.w, cloth.h );
+				clothGeometry = new THREE.ParametricGeometry(
+            cloth.particlePosition, // this sets the initial position, and is effectively unused
+            cloth.w,
+            cloth.h
+        );
 
 
         // just in case for now ?
@@ -314,6 +318,8 @@
 
 			function render() {
 
+
+        // this is all rediculous, and should be moved within cloth.simulate. Maybe once we get it working the way we want more.
 				var timer = Date.now() * 0.0002;
 
 				var particles = cloth.particles;
@@ -329,6 +335,8 @@
 
 				clothGeometry.normalsNeedUpdate = true;
 				clothGeometry.verticesNeedUpdate = true;
+
+        // end rediculousness
 
 				sphere.position.copy( ballPosition );
 

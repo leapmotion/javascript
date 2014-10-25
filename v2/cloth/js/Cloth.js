@@ -62,18 +62,6 @@ Particle.prototype.integrate = function(timesq) {
 
 var diff = new THREE.Vector3();
 
-// should be moved to a class method?
-function satisfyConstrains(p1, p2, distance) {
-	diff.subVectors(p2.position, p1.position);
-	var currentDist = diff.length();
-	if (currentDist==0) return; // prevents division by 0
-	var correction = diff.multiplyScalar(1 - distance/currentDist);  // not sure why this is better than a straight-up subtraction.
-	var correctionHalf = correction.multiplyScalar(0.5);
-	p1.position.add(correctionHalf);
-	p2.position.sub(correctionHalf);
-}
-
-
 function Cloth(w, h) {
 	w = w || 10;
 	h = h || 10;
@@ -159,11 +147,9 @@ Cloth.prototype.particleAt = function(u,v){
 
 // takes in a fractional position (0-1) and returns a position in 3d mesh space.
 // works from the bottom left
+// sets the vertex position for the parametric geometry, on initialization. Gets updated on render.
 Cloth.prototype.particlePosition = function(u, v) {
-  console.log('particlePosition'); // determine if only called on init by three (probably) and us
-
   // for now, only positive numbers, easier to track.
-
   return new THREE.Vector3(
     u * this.width, // was (u - 0.5)
     v * this.height, // was (v - 0.5)
@@ -178,10 +164,22 @@ Cloth.prototype.pinAt = function(u,v){
   return this;
 };
 
+Cloth.prototype.satisfyConstraint = function(constraint) {
+  var p1 = constraint[0], p2 = constraint[1], distance  = constraint[2];
+	diff.subVectors(p2.position, p1.position);
+	var currentDist = diff.length();
+	if (currentDist==0) return; // prevents division by 0
+	var correction = diff.multiplyScalar(1 - distance/currentDist);  // not sure why this is better than a straight-up subtraction.
+	var correctionHalf = correction.multiplyScalar(0.5);
+	p1.position.add(correctionHalf);
+	p2.position.sub(correctionHalf);
+};
+
+
 Cloth.prototype.simulate = function(time) {
 	if (!lastTime) {
 		lastTime = time;
-		return;
+		return this;
 	}
 	
 	var i, il, particles = cloth.particles, particle, constrains, constrain;
@@ -198,8 +196,7 @@ Cloth.prototype.simulate = function(time) {
 	constrains = cloth.constrains,
 	il = constrains.length;
 	for (i=0;i<il;i++) {
-		constrain = constrains[i];
-		satisfyConstrains(constrain[0], constrain[1], constrain[2]);
+    this.satisfyConstraint(constrains[i]);
 	}
 
 	// Ball Constrains
@@ -224,5 +221,5 @@ Cloth.prototype.simulate = function(time) {
 		particle.lastPosition.copy(particle.originalPosition); // ?
 	}
 
-
+  return this;
 };
