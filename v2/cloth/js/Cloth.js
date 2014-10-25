@@ -17,9 +17,6 @@ var MASS = 0.1;
 var GRAVITY = 981 * 1.4; //
 var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS); // note - this could/should be moved in to addForce. Probably out here for performance.
 
-var TIMESTEP = 18 / 1000;
-var TIMESTEP_SQ = TIMESTEP * TIMESTEP;
-
 var colliders = [], numColliders = 50;
 
 var ballGeo = new THREE.SphereGeometry( 20, 20, 20 );
@@ -32,11 +29,6 @@ for (var i = 0; i < numColliders; i++){
   colliders.push( mesh )
 }
 
-
-
-var ballRadius = 20;
-
-var lastTime;
 
 
 function Particle(position, mass) {
@@ -59,7 +51,7 @@ Particle.prototype.addForce = function(force) {
 
 // Performs verlet integration
 // instantaneous velocity times drag plus position plus acceleration times time
-Particle.prototype.calcPosition = function(timesq) {
+Particle.prototype.calcPosition = function(timesq) {     // why is this squared? And in seconds ?
 	var newPos = this.tmp.subVectors(this.position, this.lastPosition);
 	newPos.multiplyScalar(DRAG).add(this.position);
 	newPos.add(this.a.multiplyScalar(timesq));
@@ -202,76 +194,72 @@ Cloth.prototype.satisfyConstraint = function(constraint) {
 
 
 Cloth.prototype.simulate = function(time) {
-	if (!lastTime) {
-		lastTime = time;
-		return this;
-	}
-	
-	var i, il, particles = cloth.particles, particle, constrains, position;
-	
-	for (i=0, il = particles.length; i < il; i++) {
-		particle = particles[i];
-//		particle.addForce(gravity);
+  if (this.lastTime) {
+    var deltaTime = time - this.lastTime / 1000;
 
-		particle.calcPosition(TIMESTEP_SQ);
-	}
+    var i, il, particles = cloth.particles, particle, constrains, position;
 
-	// Start Constrains
+    for (i=0, il = particles.length; i < il; i++) {
+      particle = particles[i];
+//  		particle.addForce(gravity);
 
-	constrains = cloth.constrains;
-	il = constrains.length;
-	for (i=0;i<il;i++) {
-    this.satisfyConstraint(constrains[i]);
-	}
-
-	// Ball Constrains
-
-  // compares every particle to the ball position
-  // might be better off with a k-d tree!
-  // see http://threejs.org/examples/#webgl_nearestneighbour
-//	if (sphere.visible) {
-  // two optimizations, and compare:
-  // 1: Use k-d tree
-  // 2: Use Shader
-  for (var j = 0; j < colliders.length; j++){
-    var collider = colliders[j];
-
-    for (i=0, il = particles.length;i<il;i++) {
-      position = particles[i].position;
-      diff.subVectors(position, collider.position);
-
-      if (diff.length() < ballRadius) {
-        // collided
-        console.assert(collider.geometry.parameters.radius);
-        diff.normalize().multiplyScalar(collider.geometry.parameters.radius);
-        position.copy(collider.position).add(diff);
-      }
+      // actually using delta time seems a little off, so we hold this in for now. Only matters w/ gravity anyhow.
+      particle.calcPosition( Math.pow(18 /1000, 2) );
     }
 
+    // Start Constrains
+
+    constrains = cloth.constrains;
+    il = constrains.length;
+    for (i=0;i<il;i++) {
+      this.satisfyConstraint(constrains[i]);
+    }
+
+    // Ball Constrains
+
+    // compares every particle to the ball position
+    // might be better off with a k-d tree!
+    // see http://threejs.org/examples/#webgl_nearestneighbour
+    // two optimizations, and compare:
+    // 1: Use k-d tree
+    // 2: Use Shader
+    for (var j = 0; j < colliders.length; j++){
+      var collider = colliders[j], radius = collider.geometry.parameters.radius;
+
+      for (i=0, il = particles.length;i<il;i++) {
+        position = particles[i].position;
+        diff.subVectors(position, collider.position);
+
+        if (diff.length() < radius) {
+          // collided
+          diff.normalize().multiplyScalar(radius);
+          position.copy(collider.position).add(diff);
+        }
+      }
+
+    }
+
+    // Pin Constrains
+    // Assuming that it is faster to correct a few positions than check a large number.
+    for (i=0, il=this.pinnedParticles.length;i<il;i++) {
+      var particle = this.pinnedParticles[i];
+      particle.position.copy(particle.originalPosition);
+      particle.lastPosition.copy(particle.originalPosition); // ?
+    }
+
+
+    for ( var i = 0, il = particles.length; i < il; i ++ ) {
+      this.geometry.vertices[ i ].copy( particles[ i ].position );
+    }
+
+    this.geometry.computeFaceNormals();
+    this.geometry.computeVertexNormals();
+
+    this.geometry.normalsNeedUpdate = true;
+    this.geometry.verticesNeedUpdate = true;
   }
 
-//	}
-
-	// Pin Constrains
-  // Assuming that it is faster to correct a few positions than check a large number.
-	for (i=0, il=this.pinnedParticles.length;i<il;i++) {
-		var particle = this.pinnedParticles[i];
-		particle.position.copy(particle.originalPosition);
-		particle.lastPosition.copy(particle.originalPosition); // ?
-	}
-  
-  
-  for ( var i = 0, il = particles.length; i < il; i ++ ) {
-
-    this.geometry.vertices[ i ].copy( particles[ i ].position );
-
-  }
-
-  this.geometry.computeFaceNormals();
-  this.geometry.computeVertexNormals();
-
-  this.geometry.normalsNeedUpdate = true;
-  this.geometry.verticesNeedUpdate = true;
+  this.lastTime = time;
 
   return this;
 };

@@ -44,7 +44,7 @@
 			Verlet integration with Constrains relaxation<br/>
 		</div>
 
-    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
     <script src="//js.leapmotion.com/leap-0.6.3.min.js"></script>
     <script src="js/leap-plugins-0.1.9pre.js"></script>
     <script src="js/leap.pinchEvent.js"></script>
@@ -185,6 +185,7 @@
 				scene.add( light );
 
 
+//        cloth = new Cloth(100, 100);
         cloth = new Cloth(10, 10);
 
         // Four corners:
@@ -231,26 +232,6 @@
 
 
 
-        // todo - check out shadow stuff
-//				// sphere
-//
-//				var ballGeo = new THREE.SphereGeometry( ballRadius, 20, 20 );
-//				var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff } );
-//
-//				sphere = new THREE.Mesh( ballGeo, ballMaterial );
-//				sphere.castShadow = true;
-//				sphere.receiveShadow = true;
-//				scene.add( sphere );
-
-				// arrow
-
-				arrow = new THREE.ArrowHelper( new THREE.Vector3( 0, 1, 0 ), new THREE.Vector3( 0, 0, 0 ), 50, 0xff0000 );
-				arrow.position.set( -200, 0, -200 );
-			  scene.add( arrow );
-
-
-				//
-
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setClearColor( scene.fog.color );
@@ -280,10 +261,9 @@
 			function animate() {
 				requestAnimationFrame( animate );
 
-
         stats.begin();
 
-				cloth.simulate(Date.now());
+				cloth.simulate( Date.now() );
 				render();
 
         stats.end();
