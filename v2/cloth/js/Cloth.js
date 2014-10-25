@@ -20,7 +20,20 @@ var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS); // note 
 var TIMESTEP = 18 / 1000;
 var TIMESTEP_SQ = TIMESTEP * TIMESTEP;
 
-var ballPosition = new THREE.Vector3(0, -45, 0);
+var colliders = [], numColliders = 50;
+
+var ballGeo = new THREE.SphereGeometry( 20, 20, 20 );
+var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+var mesh;
+
+
+for (var i = 0; i < numColliders; i++){
+  mesh = new THREE.Mesh( ballGeo, ballMaterial );
+  colliders.push( mesh )
+}
+
+
+
 var ballRadius = 20;
 
 var lastTime;
@@ -216,17 +229,28 @@ Cloth.prototype.simulate = function(time) {
   // compares every particle to the ball position
   // might be better off with a k-d tree!
   // see http://threejs.org/examples/#webgl_nearestneighbour
-	if (sphere.visible) {
+//	if (sphere.visible) {
+  // two optimizations, and compare:
+  // 1: Use k-d tree
+  // 2: Use Shader
+  for (var j = 0; j < colliders.length; j++){
+    var collider = colliders[j];
+
     for (i=0, il = particles.length;i<il;i++) {
       position = particles[i].position;
-      diff.subVectors(position, ballPosition);
+      diff.subVectors(position, collider.position);
+
       if (diff.length() < ballRadius) {
         // collided
-        diff.normalize().multiplyScalar(ballRadius);
-        position.copy(ballPosition).add(diff);
+        console.assert(collider.geometry.parameters.radius);
+        diff.normalize().multiplyScalar(collider.geometry.parameters.radius);
+        position.copy(collider.position).add(diff);
       }
     }
-	}
+
+  }
+
+//	}
 
 	// Pin Constrains
   // Assuming that it is faster to correct a few positions than check a large number.

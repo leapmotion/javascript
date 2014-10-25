@@ -42,7 +42,6 @@
 	<body>
 		<div id="info">Simple Cloth Simulation<br/>
 			Verlet integration with Constrains relaxation<br/>
-			<a onclick="sphere.visible = !sphere.visible;">Ball</a>
 		</div>
 
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.min.js"></script>
@@ -112,7 +111,6 @@
 
 			var
           cloth;
-			var sphere;
 			var object, arrow;
 
       Leap.loop({background: true})
@@ -130,7 +128,9 @@
 
       Leap.loopController.on('hand', function(hand){
         if (hand.data('pinchEvent.pinching') || true){
-          ballPosition.fromArray( hand.indexFinger.tipPosition );
+          for (var i = 0; i < colliders.length; i++){
+            colliders[i].position.fromArray( hand.fingers[i % 5].tipPosition );
+          }
         }
       });
 
@@ -151,6 +151,10 @@
 				camera.position.y = 150;
 				camera.position.z = 1500;
 				scene.add( camera );
+
+        for (var i = 0; i < colliders.length; i++){
+          scene.add(colliders[i]);
+        }
 
 				// lights
 
@@ -227,16 +231,16 @@
 
 
 
-
-				// sphere
-
-				var ballGeo = new THREE.SphereGeometry( ballRadius, 20, 20 );
-				var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff } );
-
-				sphere = new THREE.Mesh( ballGeo, ballMaterial );
-				sphere.castShadow = true;
-				sphere.receiveShadow = true;
-				scene.add( sphere );
+        // todo - check out shadow stuff
+//				// sphere
+//
+//				var ballGeo = new THREE.SphereGeometry( ballRadius, 20, 20 );
+//				var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+//
+//				sphere = new THREE.Mesh( ballGeo, ballMaterial );
+//				sphere.castShadow = true;
+//				sphere.receiveShadow = true;
+//				scene.add( sphere );
 
 				// arrow
 
@@ -263,8 +267,6 @@
 
 				window.addEventListener( 'resize', onWindowResize, false );
 
-				sphere.visible = true
-
 			}
 
 			function onWindowResize() {
@@ -289,9 +291,6 @@
 			}
 
 			function render() {
-
-				sphere.position.copy( ballPosition );
-
 
 				camera.lookAt( scene.position.clone().setX(125) );
 
