@@ -14,20 +14,11 @@ var DAMPING = 0.03;
 var DRAG = 1 - DAMPING;
 var MASS = .1;
 
-var xSegs = 10;
-var ySegs = 10;
-
-var cloth = new Cloth(xSegs, ySegs);
-
 var GRAVITY = 981 * 1.4; //
 var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS); // note - this could/should be moved in to addForce. Probably out here for performance.
 
-
 var TIMESTEP = 18 / 1000;
 var TIMESTEP_SQ = TIMESTEP * TIMESTEP;
-
-var pins = [];
-
 
 var ballPosition = new THREE.Vector3(0, -45, 0);
 var ballSize = 40;
@@ -36,9 +27,9 @@ var lastTime;
 
 
 function Particle(position, mass) {
-	this.position = position;
-	this.previous = position.clone();
-	this.original = position.clone();
+	this.position         = position;
+	this.lastPosition     = position.clone();
+	this.originalPosition = position.clone();
 	this.a = new THREE.Vector3(0, 0, 0); // acceleration
 	this.mass = mass;
 	this.invMass = 1 / mass;
@@ -49,7 +40,7 @@ function Particle(position, mass) {
 // Force -> Acceleration
 Particle.prototype.addForce = function(force) {
 	this.a.add(
-		this.tmp2.copy(force).multiplyScalar(this.invMass)
+		this.tmp2.copy(force).multiplyScalar(this.invMass)        // why divide mass??
 	);
 };
 
@@ -57,16 +48,16 @@ Particle.prototype.addForce = function(force) {
 // Performs verlet integration
 // instantaneous velocity times drag plus position plus acceleration times time
 Particle.prototype.integrate = function(timesq) {
-	var newPos = this.tmp.subVectors(this.position, this.previous);
+	var newPos = this.tmp.subVectors(this.position, this.lastPosition);
 	newPos.multiplyScalar(DRAG).add(this.position);
 	newPos.add(this.a.multiplyScalar(timesq));
 
-	this.tmp = this.previous;
-	this.previous = this.position;
+	this.tmp = this.lastPosition;
+	this.lastPosition = this.position;
 	this.position = newPos;
 
 	this.a.set(0, 0, 0);
-}
+};
 
 
 var diff = new THREE.Vector3();
@@ -93,30 +84,20 @@ function Cloth(w, h) {
 	this.width = this.springLength * this.w;
 	this.height = this.springLength * this.h;
 
+  this.particles  = [];
+  this.constrains = [];
 
-  // takes in a fractional position (0-1) and returns a position in 3d mesh space.
-  // works from the bottom left
-  this.particlePosition = function(u, v) {
-
-    // for now, only positive numbers, easier to track.
-    var x = u * this.width; // was (u - 0.5)
-    var y = v * this.height; // was (v - 0.5)
-
-    return new THREE.Vector3(x, y, 0);
-  };
-
-	var particles = [];
-	var constrains = [];
+  this.pinnedParticles = [];
 
 	var u, v;
 
 	// Create particles
 	for (v=0; v<=h; v++) {
 		for (u=0; u<=w; u++) {
-			particles.push(
+			this.particles.push(
 
 				new Particle(
-          this.particlePosition(u/w, v/h),
+          this.particlePosition(u/this.w, v/this.h),
           MASS
         )
 
@@ -126,63 +107,86 @@ function Cloth(w, h) {
 
 	// Structural
 
+  // starting at bottom left
+  // can the order of these two loops be flipped without problem?
 	for (v=0;v<h;v++) {
 		for (u=0;u<w;u++) {
 
-			constrains.push([
-				particles[index(u, v)],
-				particles[index(u, v+1)],
+      // upwards
+      this.constrains.push([
+        this.particleAt(u,v),
+        this.particleAt(u,v+1),
 				this.springLength
 			]);
 
-			constrains.push([
-				particles[index(u, v)],
-				particles[index(u+1, v)],
+      // rightwards
+      this.constrains.push([
+        this.particleAt(u,v),
+        this.particleAt(u+1,v),
 				this.springLength
 			]);
 
 		}
 	}
 
+  // edge case, rightmost column
+  // upwards (no rightwards)
 	for (u=w, v=0;v<h;v++) {
-		constrains.push([
-			particles[index(u, v)],
-			particles[index(u, v+1)],
+    this.constrains.push([
+      this.particleAt(u,v),
+      this.particleAt(u,v+1),
 			this.springLength
 
 		]);
 	}
 
+  // edge case, topmost row
+  //
 	for (v=h, u=0;u<w;u++) {
-		constrains.push([
-			particles[index(u, v)],
-			particles[index(u+1, v)],
+    this.constrains.push([
+      this.particleAt(u,v),
+      this.particleAt(u+1,v),
 			this.springLength
 		]);
 	}
-
-
-	this.particles = particles;
-	this.constrains = constrains;
-
-	function index(u, v) {
-		return u + v * (w + 1);
-	}
-
-	this.index = index;
 
 }
 
-function simulate(time) {
+Cloth.prototype.particleAt = function(u,v){
+  return this.particles[u + v * (this.w + 1)];
+};
+
+
+// takes in a fractional position (0-1) and returns a position in 3d mesh space.
+// works from the bottom left
+Cloth.prototype.particlePosition = function(u, v) {
+  console.log('particlePosition'); // determine if only called on init by three (probably) and us
+
+  // for now, only positive numbers, easier to track.
+
+  return new THREE.Vector3(
+    u * this.width, // was (u - 0.5)
+    v * this.height, // was (v - 0.5)
+    0
+  );
+};
+
+Cloth.prototype.pinAt = function(u,v){
+  this.pinnedParticles.push(
+    this.particleAt(u,v)
+  );
+  return this;
+};
+
+Cloth.prototype.simulate = function(time) {
 	if (!lastTime) {
 		lastTime = time;
 		return;
 	}
 	
-	var i, il, particles, particle, constrains, constrain;
+	var i, il, particles = cloth.particles, particle, constrains, constrain;
 	
-	for (particles = cloth.particles, i=0, il = particles.length
-			;i<il;i++) {
+	for (i=0, il = particles.length; i < il; i++) {
 		particle = particles[i];
 		particle.addForce(gravity);
 
@@ -202,8 +206,7 @@ function simulate(time) {
 
 
 	if (sphere.visible)
-	for (particles = cloth.particles, i=0, il = particles.length
-			;i<il;i++) {
+	for (i=0, il = particles.length;i<il;i++) {
 		particle = particles[i];
 		pos = particle.position;
 		diff.subVectors(pos, ballPosition);
@@ -215,12 +218,11 @@ function simulate(time) {
 	}
 
 	// Pin Constrains
-	for (i=0, il=pins.length;i<il;i++) {
-		var xy = pins[i];
-		var p = particles[xy];
-		p.position.copy(p.original);
-		p.previous.copy(p.original);
+	for (i=0, il=this.pinnedParticles.length;i<il;i++) {
+		var particle = this.pinnedParticles[i];
+		particle.position.copy(particle.originalPosition);
+		particle.lastPosition.copy(particle.originalPosition); // ?
 	}
 
 
-}
+};

@@ -99,33 +99,15 @@
 
 			/* testing cloth simulation */
 
-      // each pin is a particle index
+      var cloth = new Cloth(10, 10);
 
-			var pinFormations = [];
-			var pins = [6];
-
-			pinFormations.push( pins );
-
-			pins = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ];
-			pinFormations.push( pins );
-
-			pins = [ 0 ];
-			pinFormations.push( pins );
-
-			pins = []; // cut the rope ;)
-			pinFormations.push( pins );
-
-			pins = [ 0, cloth.w ]; // classic 2 pins
-			pinFormations.push( pins );
 
       // Four corners:
-      pins = [
-        0,  // BL
-        xSegs - 1,  //
-        ySegs * (xSegs + 1),
-        (ySegs + 1) * (xSegs + 1)  - 1
-      ];
-      pinFormations.push( pins );
+
+      cloth.pinAt(0,0);
+      cloth.pinAt(0,10);
+      cloth.pinAt(10,0);
+      cloth.pinAt(10,10);
 
 			var container;
 			var camera, scene, renderer;
@@ -208,10 +190,10 @@
 
 
 
-        for (var i = 0; i < pins.length; i++){
-          var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff * ( i / pins.length ) } );
+        for (var i = 0; i < cloth.pinnedParticles.length; i++){
+          var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff * ( i / cloth.pinnedParticles.length ) } );
           sphere = new THREE.Mesh( ballGeo, ballMaterial );
-          sphere.position.copy(cloth.particles[pins[i]].position);
+          sphere.position.copy(cloth.pinnedParticles[i].position);
 
           console.log(sphere.position);
           scene.add(sphere);
@@ -325,7 +307,7 @@
 
 				var time = Date.now();
 
-				simulate(time);
+				cloth.simulate(time);
 				render();
 
 			}
