@@ -13,17 +13,13 @@
 var DAMPING = 0.03;
 var DRAG = 1 - DAMPING;
 var MASS = .1;
-var restDistance = 25;
 
-
-var xSegs = 20;
-var ySegs = 20;
-
-var clothFunction = plane(restDistance * xSegs, restDistance * ySegs);
+var xSegs = 10;
+var ySegs = 10;
 
 var cloth = new Cloth(xSegs, ySegs);
 
-var GRAVITY = 981 * 1.4; // 
+var GRAVITY = 981 * 1.4; //
 var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS);
 
 
@@ -32,7 +28,6 @@ var TIMESTEP_SQ = TIMESTEP * TIMESTEP;
 
 var pins = [];
 
-
 var wind = false;
 var windStrength = 2;
 var windForce = new THREE.Vector3(0,0,0);
@@ -40,26 +35,13 @@ var windForce = new THREE.Vector3(0,0,0);
 var ballPosition = new THREE.Vector3(0, -45, 0);
 var ballSize = 40;
 
-var tmpForce = new THREE.Vector3();
-
 var lastTime;
 
 
-function plane(width, height) {
-
-	return function(u, v) {
-		var x = (u-0.5) * width;
-		var y = (v+0.5) * height;
-		var z = 0;
-
-		return new THREE.Vector3(x, y, z);
-	};
-}
-
-function Particle(x, y, z, mass) {
-	this.position = clothFunction(x, y);
-	this.previous = clothFunction(x, y);
-	this.original = clothFunction(x, y); 
+function Particle(position, mass) {
+	this.position = position;
+	this.previous = position.clone();
+	this.original = position.clone();
 	this.a = new THREE.Vector3(0, 0, 0); // acceleration
 	this.mass = mass;
 	this.invMass = 1 / mass;
@@ -93,7 +75,7 @@ Particle.prototype.integrate = function(timesq) {
 var diff = new THREE.Vector3();
 
 // should be moved to a class method?
-function satisifyConstrains(p1, p2, distance) {
+function satisfyConstrains(p1, p2, distance) {
 	diff.subVectors(p2.position, p1.position);
 	var currentDist = diff.length();
 	if (currentDist==0) return; // prevents division by 0
@@ -110,6 +92,20 @@ function Cloth(w, h) {
 	this.w = w;
 	this.h = h;
 
+  this.restDistance = 25;
+
+  // takes in a fractional position (0-1) and returns a position in 3d mesh space.
+  this.particlePosition = function(u, v) {
+    var width = this.restDistance * xSegs;
+    var height = this.restDistance * ySegs;
+
+    var x = (u-0.5) * width;
+    var y = (v+0.5) * height;
+    var z = 0;
+
+    return new THREE.Vector3(x, y, z);
+  };
+
 	var particles = [];
 	var constrains = [];
 
@@ -119,11 +115,16 @@ function Cloth(w, h) {
 	for (v=0;v<=h;v++) {
 		for (u=0;u<=w;u++) {
 			particles.push(
-				new Particle(u/w, v/h, 0, MASS)
+
+				new Particle(
+          this.particlePosition(u/w, v/h),
+          MASS
+        )
+
 			);
 		}
 	}
-
+  
 	// Structural
 
 	for (v=0;v<h;v++) {
@@ -132,13 +133,13 @@ function Cloth(w, h) {
 			constrains.push([
 				particles[index(u, v)],
 				particles[index(u, v+1)],
-				restDistance
+				this.restDistance
 			]);
 
 			constrains.push([
 				particles[index(u, v)],
 				particles[index(u+1, v)],
-				restDistance
+				this.restDistance
 			]);
 
 		}
@@ -148,7 +149,7 @@ function Cloth(w, h) {
 		constrains.push([
 			particles[index(u, v)],
 			particles[index(u, v+1)],
-			restDistance
+			this.restDistance
 
 		]);
 	}
@@ -157,35 +158,9 @@ function Cloth(w, h) {
 		constrains.push([
 			particles[index(u, v)],
 			particles[index(u+1, v)],
-			restDistance
+			this.restDistance
 		]);
 	}
-
-
-	// While many system uses shear and bend springs,
-	// the relax constrains model seem to be just fine
-	// using structural springs.
-	// Shear
-	// var diagonalDist = Math.sqrt(restDistance * restDistance * 2);
-
-
-	// for (v=0;v<h;v++) {
-	// 	for (u=0;u<w;u++) {
-
-	// 		constrains.push([
-	// 			particles[index(u, v)],
-	// 			particles[index(u+1, v+1)],
-	// 			diagonalDist
-	// 		]);
-
-	// 		constrains.push([
-	// 			particles[index(u+1, v)],
-	// 			particles[index(u, v+1)],
-	// 			diagonalDist
-	// 		]);
-
-	// 	}
-	// }
 
 
 	this.particles = particles;
@@ -221,7 +196,7 @@ function simulate(time) {
 	il = constrains.length;
 	for (i=0;i<il;i++) {
 		constrain = constrains[i];
-		satisifyConstrains(constrain[0], constrain[1], constrain[2]);
+		satisfyConstrains(constrain[0], constrain[1], constrain[2]);
 	}
 
 	// Ball Constrains

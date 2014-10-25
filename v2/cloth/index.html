@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 	<head>
-		<title>three.js webgl - cloth simulation</title>
+		<title>Leap Cloth</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -119,8 +119,16 @@
 			pins = [ 0, cloth.w ]; // classic 2 pins
 			pinFormations.push( pins );
 
-			pins = pinFormations[ 1 ];
+      // Four corners:
+//      pins = [ 0, xSegs - 1, (ySegs - 1) * xSegs, ySegs * xSegs - 1];
+      pins = [ (ySegs - 1) * xSegs, ySegs * xSegs - 1];
+//      pins = [ 0, xSegs - 1];
+      pinFormations.push( pins );
 
+
+      for (var i = 0; i < pins.length; i++){
+        console.log(cloth.particles[pins[i]].position);
+      }
 
 			function togglePins() {
 
@@ -152,8 +160,8 @@
 
       Leap.loopController.on('hand', function(hand){
         if (hand.data('pinchEvent.pinching') || true){
-            ballPosition.fromArray( hand.indexFinger.tipPosition );
-          }
+          ballPosition.fromArray( hand.indexFinger.tipPosition );
+        }
       });
 
 			init();
@@ -176,12 +184,12 @@
 
 				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
 				camera.position.y = 50;
-				camera.position.z = 1500;
+				camera.position.z = 2200;
 				scene.add( camera );
 
 				// lights
 
-				var light, materials;
+				var light;
 
 				scene.add( new THREE.AmbientLight( 0x666666 ) );
 
@@ -226,7 +234,13 @@
         } );
 
 				// cloth geometry
-				clothGeometry = new THREE.ParametricGeometry( clothFunction, cloth.w, cloth.h );
+				clothGeometry = new THREE.ParametricGeometry( cloth.particlePosition, cloth.w, cloth.h );
+
+
+        // just in case for now ?
+//        var diff = clothGeometry.mergeVertices();
+//        console.log('removed ', diff, ' vertices by merging');
+
 				clothGeometry.dynamic = true;
 				clothGeometry.computeFaceNormals();
 
@@ -247,6 +261,9 @@
           vertexShader: vertexShader,
           fragmentShader: fragmentShader
         } );
+
+
+
 
 				// sphere
 
@@ -320,11 +337,11 @@
 
 				var timer = Date.now() * 0.0002;
 
-				var p = cloth.particles;
+				var particles = cloth.particles;
 
-				for ( var i = 0, il = p.length; i < il; i ++ ) {
+				for ( var i = 0, il = particles.length; i < il; i ++ ) {
 
-					clothGeometry.vertices[ i ].copy( p[ i ].position );
+					clothGeometry.vertices[ i ].copy( particles[ i ].position );
 
 				}
 
