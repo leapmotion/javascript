@@ -28,9 +28,6 @@ var TIMESTEP_SQ = TIMESTEP * TIMESTEP;
 
 var pins = [];
 
-var wind = false;
-var windStrength = 2;
-var windForce = new THREE.Vector3(0,0,0);
 
 var ballPosition = new THREE.Vector3(0, -45, 0);
 var ballSize = 40;
@@ -92,12 +89,12 @@ function Cloth(w, h) {
 	this.w = w;
 	this.h = h;
 
-  this.restDistance = 25;
+  this.springLength = 25;
 
   // takes in a fractional position (0-1) and returns a position in 3d mesh space.
   this.particlePosition = function(u, v) {
-    var width = this.restDistance * xSegs;
-    var height = this.restDistance * ySegs;
+    var width = this.springLength * xSegs;
+    var height = this.springLength * ySegs;
 
     var x = (u-0.5) * width;
     var y = (v+0.5) * height;
@@ -133,13 +130,13 @@ function Cloth(w, h) {
 			constrains.push([
 				particles[index(u, v)],
 				particles[index(u, v+1)],
-				this.restDistance
+				this.springLength
 			]);
 
 			constrains.push([
 				particles[index(u, v)],
 				particles[index(u+1, v)],
-				this.restDistance
+				this.springLength
 			]);
 
 		}
@@ -149,7 +146,7 @@ function Cloth(w, h) {
 		constrains.push([
 			particles[index(u, v)],
 			particles[index(u, v+1)],
-			this.restDistance
+			this.springLength
 
 		]);
 	}
@@ -158,7 +155,7 @@ function Cloth(w, h) {
 		constrains.push([
 			particles[index(u, v)],
 			particles[index(u+1, v)],
-			this.restDistance
+			this.springLength
 		]);
 	}
 
