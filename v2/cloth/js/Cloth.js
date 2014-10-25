@@ -21,7 +21,7 @@ var TIMESTEP = 18 / 1000;
 var TIMESTEP_SQ = TIMESTEP * TIMESTEP;
 
 var ballPosition = new THREE.Vector3(0, -45, 0);
-var ballSize = 40;
+var ballRadius = 20;
 
 var lastTime;
 
@@ -32,7 +32,6 @@ function Particle(position, mass) {
 	this.originalPosition = position.clone();
 	this.a = new THREE.Vector3(0, 0, 0); // acceleration
 	this.mass = mass;
-	this.invMass = 1 / mass;
 	this.tmp = new THREE.Vector3(); // wat
 	this.tmp2 = new THREE.Vector3();
 }
@@ -47,7 +46,7 @@ Particle.prototype.addForce = function(force) {
 
 // Performs verlet integration
 // instantaneous velocity times drag plus position plus acceleration times time
-Particle.prototype.integrate = function(timesq) {
+Particle.prototype.calcPosition = function(timesq) {
 	var newPos = this.tmp.subVectors(this.position, this.lastPosition);
 	newPos.multiplyScalar(DRAG).add(this.position);
 	newPos.add(this.a.multiplyScalar(timesq));
@@ -164,12 +163,16 @@ Cloth.prototype.pinAt = function(u,v){
   return this;
 };
 
+// conservation of energy
+// the position offset is spread between two nodes
 Cloth.prototype.satisfyConstraint = function(constraint) {
   var p1 = constraint[0], p2 = constraint[1], distance  = constraint[2];
 	diff.subVectors(p2.position, p1.position);
+
 	var currentDist = diff.length();
 	if (currentDist==0) return; // prevents division by 0
-	var correction = diff.multiplyScalar(1 - distance/currentDist);  // not sure why this is better than a straight-up subtraction.
+
+	var correction = diff.multiplyScalar(1 - distance/currentDist);  // vectors
 	var correctionHalf = correction.multiplyScalar(0.5);
 	p1.position.add(correctionHalf);
 	p2.position.sub(correctionHalf);
@@ -182,18 +185,18 @@ Cloth.prototype.simulate = function(time) {
 		return this;
 	}
 	
-	var i, il, particles = cloth.particles, particle, constrains, constrain;
+	var i, il, particles = cloth.particles, particle, constrains, position;
 	
 	for (i=0, il = particles.length; i < il; i++) {
 		particle = particles[i];
-		particle.addForce(gravity);
+//		particle.addForce(gravity);
 
-		particle.integrate(TIMESTEP_SQ);
+		particle.calcPosition(TIMESTEP_SQ);
 	}
 
 	// Start Constrains
 
-	constrains = cloth.constrains,
+	constrains = cloth.constrains;
 	il = constrains.length;
 	for (i=0;i<il;i++) {
     this.satisfyConstraint(constrains[i]);
@@ -201,20 +204,23 @@ Cloth.prototype.simulate = function(time) {
 
 	// Ball Constrains
 
-
-	if (sphere.visible)
-	for (i=0, il = particles.length;i<il;i++) {
-		particle = particles[i];
-		pos = particle.position;
-		diff.subVectors(pos, ballPosition);
-		if (diff.length() < ballSize) {
-			// collided
-			diff.normalize().multiplyScalar(ballSize);
-			pos.copy(ballPosition).add(diff);
-		}
+  // compares every particle to the ball position
+  // might be better off with a k-d tree!
+  // see http://threejs.org/examples/#webgl_nearestneighbour
+	if (sphere.visible) {
+    for (i=0, il = particles.length;i<il;i++) {
+      position = particles[i].position;
+      diff.subVectors(position, ballPosition);
+      if (diff.length() < ballRadius) {
+        // collided
+        diff.normalize().multiplyScalar(ballRadius);
+        position.copy(ballPosition).add(diff);
+      }
+    }
 	}
 
 	// Pin Constrains
+  // Assuming that it is faster to correct a few positions than check a large number.
 	for (i=0, il=this.pinnedParticles.length;i<il;i++) {
 		var particle = this.pinnedParticles[i];
 		particle.position.copy(particle.originalPosition);

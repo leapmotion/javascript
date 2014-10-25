@@ -109,7 +109,6 @@
       cloth.pinAt(10,0);
       cloth.pinAt(10,10);
 
-			var container;
 			var camera, scene, renderer;
 
 			var clothGeometry;
@@ -129,6 +128,8 @@
         })
         .use('pinchEvent');
 
+      Leap.loopController.setBackground(true); // see https://github.com/leapmotion/leapjs/issues/190
+
       Leap.loopController.on('hand', function(hand){
         if (hand.data('pinchEvent.pinching') || true){
           ballPosition.fromArray( hand.indexFinger.tipPosition );
@@ -140,31 +141,26 @@
 
 			function init() {
 
-				container = document.createElement( 'div' );
-				document.body.appendChild( container );
-
 				// scene
 
 				scene = new THREE.Scene();
-
 				scene.fog = new THREE.Fog( 0xcce0ff, 500, 10000 );
 
         Leap.loopController.plugins.boneHand.scene = scene;
 
-				// camera
-
 				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
-				camera.position.y = 50;
-				camera.position.z = 2200;
+				camera.position.x = 100;
+				camera.position.y = 150;
+				camera.position.z = 1500;
 				scene.add( camera );
 
 				// lights
 
-				var light;
 
 				scene.add( new THREE.AmbientLight( 0x666666 ) );
 
-				light = new THREE.DirectionalLight( 0xdfebff, 1.75 );
+				var light;
+				light = new THREE.DirectionalLight( 0xcccccc, 1.75 );
 				light.position.set( 50, 200, 100 );
 				light.position.multiplyScalar( 1.3 );
 
@@ -186,24 +182,13 @@
 
 				scene.add( light );
 
-        var ballGeo = new THREE.SphereGeometry( 20, 20, 20 );
 
-
-
-        for (var i = 0; i < cloth.pinnedParticles.length; i++){
-          var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff * ( i / cloth.pinnedParticles.length ) } );
-          sphere = new THREE.Mesh( ballGeo, ballMaterial );
-          sphere.position.copy(cloth.pinnedParticles[i].position);
-
-          console.log(sphere.position);
-          scene.add(sphere);
-        }
 
 				// cloth material
 
-				var clothTexture = THREE.ImageUtils.loadTexture( 'circuit_pattern.png' );
+				var clothTexture = THREE.ImageUtils.loadTexture( 'LARGE-3-420 oiling 9000.Tif.jpg' );
 				clothTexture.wrapS = clothTexture.wrapT = THREE.RepeatWrapping;
-				clothTexture.anisotropy = 16;
+//				clothTexture.anisotropy = 16;
 
 				var clothMaterial = new THREE.MeshPhongMaterial( {
           alphaTest: 0.5,
@@ -213,8 +198,8 @@
           emissive: 0x111111,
           shiness: 10,
           map: clothTexture,
-          side: THREE.DoubleSide,
-          wireframe: true
+          side: THREE.DoubleSide//,
+//          wireframe: true
         } );
 
 				// cloth geometry
@@ -224,10 +209,6 @@
             cloth.h
         );
 
-
-        // just in case for now ?
-//        var diff = clothGeometry.mergeVertices();
-//        console.log('removed ', diff, ' vertices by merging');
 
 				clothGeometry.dynamic = true;
 				clothGeometry.computeFaceNormals();
@@ -255,7 +236,7 @@
 
 				// sphere
 
-				var ballGeo = new THREE.SphereGeometry( ballSize, 20, 20 );
+				var ballGeo = new THREE.SphereGeometry( ballRadius, 20, 20 );
 				var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff } );
 
 				sphere = new THREE.Mesh( ballGeo, ballMaterial );
@@ -276,7 +257,7 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setClearColor( scene.fog.color );
 
-				container.appendChild( renderer.domElement );
+        document.body.appendChild( renderer.domElement );
 
 				renderer.gammaInput = true;
 				renderer.gammaOutput = true;
@@ -347,7 +328,7 @@
 
 				}
 
-				camera.lookAt( scene.position );
+				camera.lookAt( scene.position.clone().setX(125) );
 
 				renderer.render( scene, camera );
 
