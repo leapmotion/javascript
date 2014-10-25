@@ -20,7 +20,7 @@ var ySegs = 10;
 var cloth = new Cloth(xSegs, ySegs);
 
 var GRAVITY = 981 * 1.4; //
-var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS);
+var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS); // note - this could/should be moved in to addForce. Probably out here for performance.
 
 
 var TIMESTEP = 18 / 1000;
@@ -90,17 +90,19 @@ function Cloth(w, h) {
 	this.h = h;
 
   this.springLength = 25;
+	this.width = this.springLength * this.w;
+	this.height = this.springLength * this.h;
+
 
   // takes in a fractional position (0-1) and returns a position in 3d mesh space.
+  // works from the bottom left
   this.particlePosition = function(u, v) {
-    var width = this.springLength * xSegs;
-    var height = this.springLength * ySegs;
 
-    var x = (u-0.5) * width;
-    var y = (v+0.5) * height;
-    var z = 0;
+    // for now, only positive numbers, easier to track.
+    var x = u * this.width; // was (u - 0.5)
+    var y = v * this.height; // was (v - 0.5)
 
-    return new THREE.Vector3(x, y, z);
+    return new THREE.Vector3(x, y, 0);
   };
 
 	var particles = [];
@@ -109,8 +111,8 @@ function Cloth(w, h) {
 	var u, v;
 
 	// Create particles
-	for (v=0;v<=h;v++) {
-		for (u=0;u<=w;u++) {
+	for (v=0; v<=h; v++) {
+		for (u=0; u<=w; u++) {
 			particles.push(
 
 				new Particle(
@@ -121,7 +123,7 @@ function Cloth(w, h) {
 			);
 		}
 	}
-  
+
 	// Structural
 
 	for (v=0;v<h;v++) {

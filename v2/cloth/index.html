@@ -34,22 +34,22 @@
   Cloth Physics in Three.js: http://www.kamend.com/2011/12/cloth-physics-in-three-js/
   Curtain Me: http://www.chromeexperiments.com/detail/curtain-me/?f=
 
+  note -
+  a constant wind could be a pretty interesting way to get shapes in VR (!)
+
   -->
 
 	<body>
 		<div id="info">Simple Cloth Simulation<br/>
 			Verlet integration with Constrains relaxation<br/>
 			Toggle: <a onclick="rotate = !rotate;">Camera</a> |
-			<a onclick="sphere.visible = !sphere.visible;">Ball</a> |
-			<a onclick="togglePins();">Pins</a>
+			<a onclick="sphere.visible = !sphere.visible;">Ball</a>
 		</div>
 
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.min.js"></script>
     <script src="//js.leapmotion.com/leap-0.6.3.min.js"></script>
     <script src="js/leap-plugins-0.1.9pre.js"></script>
     <script src="js/leap.pinchEvent.js"></script>
-
-		<script src="js/Detector.js"></script>
 
 		<script src="js/Cloth.js"></script>
 
@@ -119,23 +119,13 @@
 			pinFormations.push( pins );
 
       // Four corners:
-//      pins = [ 0, xSegs - 1, (ySegs - 1) * xSegs, ySegs * xSegs - 1];
-      pins = [ (ySegs - 1) * xSegs, ySegs * xSegs - 1];
-//      pins = [ 0, xSegs - 1];
+      pins = [
+        0,  // BL
+        xSegs - 1,  //
+        ySegs * (xSegs + 1),
+        (ySegs + 1) * (xSegs + 1)  - 1
+      ];
       pinFormations.push( pins );
-
-
-      for (var i = 0; i < pins.length; i++){
-        console.log(cloth.particles[pins[i]].position);
-      }
-
-			function togglePins() {
-
-				pins = pinFormations[ ~~( Math.random() * pinFormations.length ) ];
-
-			}
-
-			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
 			var container;
 			var camera, scene, renderer;
@@ -146,7 +136,7 @@
 
 			var rotate = false;
 
-      Leap.loop()
+      Leap.loop({background: true})
         .use('transform', {
           quaternion: (new THREE.Quaternion),
           position: new THREE.Vector3(0,-200,-100),
@@ -213,6 +203,19 @@
 				light.shadowDarkness = 0.5;
 
 				scene.add( light );
+
+        var ballGeo = new THREE.SphereGeometry( 20, 20, 20 );
+
+
+
+        for (var i = 0; i < pins.length; i++){
+          var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff * ( i / pins.length ) } );
+          sphere = new THREE.Mesh( ballGeo, ballMaterial );
+          sphere.position.copy(cloth.particles[pins[i]].position);
+
+          console.log(sphere.position);
+          scene.add(sphere);
+        }
 
 				// cloth material
 
