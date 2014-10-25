@@ -12,7 +12,7 @@
 
 var DAMPING = 0.03;
 var DRAG = 1 - DAMPING;
-var MASS = .1;
+var MASS = 0.1;
 
 var GRAVITY = 981 * 1.4; //
 var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS); // note - this could/should be moved in to addForce. Probably out here for performance.
@@ -40,7 +40,7 @@ function Particle(position, mass) {
 // Force -> Acceleration
 Particle.prototype.addForce = function(force) {
 	this.a.add(
-		this.tmp2.copy(force).multiplyScalar(this.invMass)        // why divide mass??
+		this.tmp2.copy(force)
 	);
 };
 
