@@ -81,9 +81,9 @@ var diff = new THREE.Vector3();
 
 // Takes in number of particles wide by height
 function Cloth(xParticleCount, yParticleCount, springLen) {
-  this.w = xParticleCount = xParticleCount || 10;  // number
-  this.h = yParticleCount = yParticleCount || 10;
-  this.springLength = springLen = springLen || 25;
+  this.w = xParticleCount || 10;  // number
+  this.h = yParticleCount || 10;
+  this.springLength = springLen || 25;
 
   this.geometry = new THREE.ParametricGeometry(
     this.particlePosition, // this sets the initial position, and is effectively unused
@@ -99,14 +99,30 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
 
   this.particles  = [];
   this.constrains = [];
-
   this.pinnedParticles = [];
 
+  this.addParticles();
+
+  this.addConstraints();
+
+  this.pinCorners();
+
+}
+
+Cloth.prototype.pinCorners = function(){
+  // Four corners:
+  this.pinAt(0,0);
+  this.pinAt(0,this.h);
+  this.pinAt(this.w,0);
+  this.pinAt(this.w,this.h);
+};
+
+Cloth.prototype.addParticles = function(){
 	var u, v;
 
 	// Create particles
-	for (v=0; v<=yParticleCount; v++) {
-		for (u=0; u<=xParticleCount; u++) {
+	for (v=0; v<=this.h; v++) {
+		for (u=0; u<=this.w; u++) {
 			this.particles.push(
 
 				new Particle(
@@ -118,12 +134,15 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
 		}
 	}
 
-	// Structural
+}
+
+Cloth.prototype.addConstraints = function(){
+	var u, v;
 
   // starting at bottom left
   // can the order of these two loops be flipped without problem?
-	for (v=0;v<yParticleCount;v++) {
-		for (u=0;u<xParticleCount;u++) {
+	for (v=0;v<this.h;v++) {
+		for (u=0;u<this.w;u++) {
 
       // upwards
       this.constrains.push([
@@ -144,7 +163,7 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
 
   // edge case, rightmost column
   // upwards (no rightwards)
-	for (u=xParticleCount, v=0;v<yParticleCount;v++) {
+	for (u=this.w, v=0;v<this.h;v++) {
     this.constrains.push([
       this.particleAt(u,v),
       this.particleAt(u,v+1),
@@ -155,7 +174,7 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
 
   // edge case, topmost row
   //
-	for (v=yParticleCount, u=0;u<xParticleCount;u++) {
+	for (v=this.h, u=0;u<this.w;u++) {
     this.constrains.push([
       this.particleAt(u,v),
       this.particleAt(u+1,v),
