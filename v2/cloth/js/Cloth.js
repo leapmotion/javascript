@@ -29,6 +29,19 @@ for (var i = 0; i < numColliders; i++){
   colliders.push( mesh )
 }
 
+var dots = [];
+var numDots = 100;
+
+var dotGeo = new THREE.SphereGeometry( 10, 10, 10 );
+var dotMaterial = new THREE.MeshPhongMaterial( { color: 0xff0000 } );
+
+var center = new THREE.Mesh( dotGeo, dotMaterial.clone() );
+center.material.color.setHex( 0x00ff00 );
+
+for (var i = 0; i < numDots; i++){
+  mesh = new THREE.Mesh( dotGeo, dotMaterial );
+  dots.push( mesh )
+}
 
 
 function Particle(position, mass) {
@@ -163,8 +176,8 @@ Cloth.prototype.particleAt = function(u,v){
 Cloth.prototype.particlePosition = function(u, v) {
   // for now, only positive numbers, easier to track.
   return new THREE.Vector3(
-    u * this.width, // was (u - 0.5)
-    v * this.height, // was (v - 0.5)
+    (u - 0.5) * this.width, // was (u - 0.5)
+    (v - 0.5) * this.height, // was (v - 0.5)
     0
   );
 };
@@ -204,35 +217,38 @@ Cloth.prototype.collisionLikelyParticles = function(collider){
   var radius = collider.geometry.parameters.radius;
 
 
-  // Discard Z > collider radius * 2
+  // Discard Z > collider radius * 8 (8 is a bit of a magic number here.)
   // Margin is taken against the origin position of the particle.
   // So far, this works at any orientation.
   // assumes that the mesh is a flat plane, and not curved to the view
   // that would require higher or dynamic z-margin. (Might not be too bad to implement).
   // this should already do a lot when the hand is not near the mesh.
-  if ( Math.abs(offset.z) > radius ) return particles;
+  if ( Math.abs(offset.z) > radius * 8 ) return particles;
+  if ( Math.abs(offset.x) > this.width / 2 * 1.3 ) return particles;
+  if ( Math.abs(offset.y) > this.height / 2 * 1.3 ) return particles;
 
   // convert from meters to index-space.
   // this needs to be reflected as from-center
   offset.divideScalar(this.springLength);
-  radius /= (this.springLength * 2); // double for good measure
   offset.x = ~~offset.x; // Math.floor
   offset.y = ~~offset.y;
-//  radius = ~~radius;
+
+  radius /= (this.springLength * 2); // double for good measure
   radius = Math.ceil(radius);
 
 
   // offset is from center, but we're indexed from bottom left
   // this could be sloppy/off by one? Better do the addition before the unit change?
-//  offset.x += ~~(this.w / 2);
-//  offset.y += ~~(this.v / 2);
+  // note that this is disabled for now, as the vertices are not currently centered on the mesh position, but their BL corner is.
+    offset.x += ~~(this.w / 2);
+    offset.y += ~~(this.h / 2);
 
 
   // call this for every row
   // start with center for now
   // forms a square
   var row;
-  for (var i = 0; i < radius * 2; i++){
+  for (var i = 0; i <= radius * 2; i++){
     row = (offset.y - radius + i) * (this.w + 1);
 
     particles = particles.concat(
@@ -279,21 +295,31 @@ Cloth.prototype.simulate = function(time) {
     // 1: Use k-d tree
     // 2: Use Shader
 
+    for (i = 0; i < dots.length; i++){
+      dots[i].visible = false;
+    }
+
     for (var j = 0; j < colliders.length; j++){
       var collider = colliders[j],
         radius = collider.geometry.parameters.radius;
 
-//      collisionLikelyParticles = this.collisionLikelyParticles(collider);
-      collisionLikelyParticles = particles;
-      console.log('queried particles: ', collisionLikelyParticles.length);
+      // this is a good optimization for a large number of colliders! (tested w/ 50 to 500).
+      collisionLikelyParticles = this.collisionLikelyParticles(collider);
+//      collisionLikelyParticles = particles;
+//      console.log('queried particles: ', collisionLikelyParticles.length);
 
       for (i=0, il = collisionLikelyParticles.length;i<il;i++) {
+
+        dots[i].visible = true;
+        dots[i].position.copy(collisionLikelyParticles[i].position);
+
+
         position = collisionLikelyParticles[i].position;
         diff.subVectors(position, collider.position);
 
         if (diff.length() < radius) {
           // collided
-          diff.normalize().multiplyScalar(radius);
+          diff.normalize().multiplyScalar(radius * 1.5);
           position.copy(collider.position).add(diff);
         }
       }

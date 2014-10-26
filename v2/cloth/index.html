@@ -129,7 +129,7 @@
       Leap.loopController.on('hand', function(hand){
         if (hand.data('pinchEvent.pinching') || true){
           for (var i = 0; i < colliders.length; i++){
-            colliders[i].position.fromArray( hand.fingers[i % 5].tipPosition );
+            colliders[i].position.fromArray( hand.fingers[(i + 1) % 5].tipPosition );
           }
         }
       });
@@ -148,12 +148,16 @@
 
 				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
 				camera.position.x = 100;
-				camera.position.y = 150;
-				camera.position.z = 1500;
+				camera.position.y = 200;
+				camera.position.z = 900;
 				scene.add( camera );
 
         for (var i = 0; i < colliders.length; i++){
           scene.add(colliders[i]);
+        }
+
+        for (var i = 0; i < dots.length; i++){
+          scene.add(dots[i]);
         }
 
 				// lights
@@ -186,8 +190,8 @@
 
 
 //        cloth = new Cloth(100, 100, 2.5);
-        cloth = new Cloth(50, 50, 5);
-//        cloth = new Cloth(10, 10);
+//        cloth = new Cloth(50, 50, 5);
+        cloth = new Cloth(10, 10);
 
         // Four corners:
         cloth.pinAt(0,0);
@@ -234,6 +238,9 @@
         } );
 
 
+        center.position.copy(mesh.position);
+        scene.add(center);
+
 
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setSize( window.innerWidth, window.innerHeight );
@@ -274,8 +281,7 @@
 			}
 
 			function render() {
-
-				camera.lookAt( scene.position.clone().setX(125) );
+				camera.lookAt( scene.position );
 
 				renderer.render( scene, camera );
 
