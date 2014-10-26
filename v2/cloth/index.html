@@ -111,7 +111,7 @@
 
 			var
           cloth;
-			var object, arrow;
+			var mesh, arrow;
 
       Leap.loop({background: true})
         .use('transform', {
@@ -185,8 +185,9 @@
 				scene.add( light );
 
 
-//        cloth = new Cloth(100, 100);
-        cloth = new Cloth(10, 10);
+//        cloth = new Cloth(100, 100, 2.5);
+        cloth = new Cloth(50, 50, 5);
+//        cloth = new Cloth(10, 10);
 
         // Four corners:
         cloth.pinAt(0,0);
@@ -218,13 +219,15 @@
 
 				// cloth mesh
 
-				object = new THREE.Mesh( cloth.geometry, clothMaterial );
-				object.position.set( 0, 0, 0 );
-				object.castShadow = true;
-				object.receiveShadow = true;
-				scene.add( object );
+				mesh = new THREE.Mesh( cloth.geometry, clothMaterial );
+				mesh.position.set( 0, 0, 0 );
+				mesh.castShadow = true;
+				mesh.receiveShadow = true;
+				scene.add( mesh );
 
-				object.customDepthMaterial = new THREE.ShaderMaterial( {
+        cloth.mesh = mesh; // bad
+
+				mesh.customDepthMaterial = new THREE.ShaderMaterial( {
           uniforms: uniforms,
           vertexShader: vertexShader,
           fragmentShader: fragmentShader

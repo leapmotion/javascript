@@ -17,7 +17,7 @@ var MASS = 0.1;
 var GRAVITY = 981 * 1.4; //
 var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS); // note - this could/should be moved in to addForce. Probably out here for performance.
 
-var colliders = [], numColliders = 50;
+var colliders = [], numColliders = 1;
 
 var ballGeo = new THREE.SphereGeometry( 20, 20, 20 );
 var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff } );
@@ -66,11 +66,11 @@ Particle.prototype.calcPosition = function(timesq) {     // why is this squared?
 
 var diff = new THREE.Vector3();
 
-function Cloth(w, h) {
-	w = w || 10;
-	h = h || 10;
-	this.w = w;
-	this.h = h;
+// Takes in number of particles wide by height
+function Cloth(xParticleCount, yParticleCount, springLen) {
+  this.w = xParticleCount = xParticleCount || 10;  // number
+  this.h = yParticleCount = yParticleCount || 10;
+  this.springLength = springLen = springLen || 25;
 
   this.geometry = new THREE.ParametricGeometry(
     this.particlePosition, // this sets the initial position, and is effectively unused
@@ -81,7 +81,6 @@ function Cloth(w, h) {
   this.geometry.dynamic = true;
   this.geometry.computeFaceNormals(); // why ?
 
-  this.springLength = 25;
 	this.width = this.springLength * this.w;
 	this.height = this.springLength * this.h;
 
@@ -93,8 +92,8 @@ function Cloth(w, h) {
 	var u, v;
 
 	// Create particles
-	for (v=0; v<=h; v++) {
-		for (u=0; u<=w; u++) {
+	for (v=0; v<=yParticleCount; v++) {
+		for (u=0; u<=xParticleCount; u++) {
 			this.particles.push(
 
 				new Particle(
@@ -110,8 +109,8 @@ function Cloth(w, h) {
 
   // starting at bottom left
   // can the order of these two loops be flipped without problem?
-	for (v=0;v<h;v++) {
-		for (u=0;u<w;u++) {
+	for (v=0;v<yParticleCount;v++) {
+		for (u=0;u<xParticleCount;u++) {
 
       // upwards
       this.constrains.push([
@@ -132,7 +131,7 @@ function Cloth(w, h) {
 
   // edge case, rightmost column
   // upwards (no rightwards)
-	for (u=w, v=0;v<h;v++) {
+	for (u=xParticleCount, v=0;v<yParticleCount;v++) {
     this.constrains.push([
       this.particleAt(u,v),
       this.particleAt(u,v+1),
@@ -143,7 +142,7 @@ function Cloth(w, h) {
 
   // edge case, topmost row
   //
-	for (v=h, u=0;u<w;u++) {
+	for (v=yParticleCount, u=0;u<xParticleCount;u++) {
     this.constrains.push([
       this.particleAt(u,v),
       this.particleAt(u+1,v),
@@ -192,12 +191,68 @@ Cloth.prototype.satisfyConstraint = function(constraint) {
 	p2.position.sub(correctionHalf);
 };
 
+// takes the position of the collider
+// subtracts that of the cloth mesh
+// converts position and radius to index and index-step
+// returns a subset of particles in an array
+// assume that collider positions are world positions (Leap-data)
+Cloth.prototype.collisionLikelyParticles = function(collider){
+  var particles = [];
+
+//  var offset = this.mesh.getWorldPosition().sub(collider.position);
+  var offset = collider.position.clone().sub(this.mesh.getWorldPosition());
+  var radius = collider.geometry.parameters.radius;
+
+
+  // Discard Z > collider radius * 2
+  // Margin is taken against the origin position of the particle.
+  // So far, this works at any orientation.
+  // assumes that the mesh is a flat plane, and not curved to the view
+  // that would require higher or dynamic z-margin. (Might not be too bad to implement).
+  // this should already do a lot when the hand is not near the mesh.
+  if ( Math.abs(offset.z) > radius ) return particles;
+
+  // convert from meters to index-space.
+  // this needs to be reflected as from-center
+  offset.divideScalar(this.springLength);
+  radius /= (this.springLength * 2); // double for good measure
+  offset.x = ~~offset.x; // Math.floor
+  offset.y = ~~offset.y;
+//  radius = ~~radius;
+  radius = Math.ceil(radius);
+
+
+  // offset is from center, but we're indexed from bottom left
+  // this could be sloppy/off by one? Better do the addition before the unit change?
+//  offset.x += ~~(this.w / 2);
+//  offset.y += ~~(this.v / 2);
+
+
+  // call this for every row
+  // start with center for now
+  // forms a square
+  var row;
+  for (var i = 0; i < radius * 2; i++){
+    row = (offset.y - radius + i) * (this.w + 1);
+
+    particles = particles.concat(
+      this.particles.slice(
+        (offset.x - radius) + row,
+        (offset.x + radius) + row + 1
+      ) // inclusive, exclusive
+    );
+
+  }
+
+  return particles;
+};
+
 
 Cloth.prototype.simulate = function(time) {
   if (this.lastTime) {
     var deltaTime = time - this.lastTime / 1000;
 
-    var i, il, particles = cloth.particles, particle, constrains, position;
+    var i, il, particles = cloth.particles, particle, constrains, position, collisionLikelyParticles;
 
     for (i=0, il = particles.length; i < il; i++) {
       particle = particles[i];
@@ -223,11 +278,17 @@ Cloth.prototype.simulate = function(time) {
     // two optimizations, and compare:
     // 1: Use k-d tree
     // 2: Use Shader
-    for (var j = 0; j < colliders.length; j++){
-      var collider = colliders[j], radius = collider.geometry.parameters.radius;
 
-      for (i=0, il = particles.length;i<il;i++) {
-        position = particles[i].position;
+    for (var j = 0; j < colliders.length; j++){
+      var collider = colliders[j],
+        radius = collider.geometry.parameters.radius;
+
+//      collisionLikelyParticles = this.collisionLikelyParticles(collider);
+      collisionLikelyParticles = particles;
+      console.log('queried particles: ', collisionLikelyParticles.length);
+
+      for (i=0, il = collisionLikelyParticles.length;i<il;i++) {
+        position = collisionLikelyParticles[i].position;
         diff.subVectors(position, collider.position);
 
         if (diff.length() < radius) {
