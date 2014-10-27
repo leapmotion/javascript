@@ -190,7 +190,8 @@
 
 
 //        cloth = new Cloth(100, 100, 2.5);
-        cloth = new Cloth(50, 50, 5);
+        var width = 50;
+        cloth = new Cloth(width, width , 5); // todo - support rectangles
 //        cloth = new Cloth(10, 10);
 
 				// cloth material
@@ -207,8 +208,8 @@
           emissive: 0x111111,
           shiness: 10,
           map: clothTexture,
-          side: THREE.DoubleSide//,
-//          wireframe: true
+          side: THREE.DoubleSide,
+          wireframe: true
         } );
 
 				var uniforms = { texture:  { type: "t", value: clothTexture } };
@@ -232,9 +233,6 @@
         } );
 
 
-        center.position.copy(mesh.position);
-        scene.add(center);
-
 
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setSize( window.innerWidth, window.innerHeight );
@@ -246,8 +244,6 @@
 				renderer.gammaOutput = true;
 
 				renderer.shadowMapEnabled = true;
-
-				//
 
 
 				window.addEventListener( 'resize', onWindowResize, false );
@@ -261,14 +257,17 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 			}
 
+      var simulated = false;
 
 			function animate() {
 				requestAnimationFrame( animate );
 
         stats.begin();
 
-				cloth.simulate( Date.now() );
+				if (!simulated) cloth.simulate( Date.now() );
 				render();
+
+//        simulated = true;
 
         stats.end();
 

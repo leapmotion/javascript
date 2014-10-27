@@ -10,12 +10,12 @@
 // http://cg.alexandra.dk/tag/spring-mass-system/
 // Real-time Cloth Animation http://www.darwin3d.com/gamedev/articles/col0599.pdf
 
+// Certain things could be stored to attempt to reduce GC
+// such as `diff`
+
 var DAMPING = 0.03;
 var DRAG = 1 - DAMPING;
 var MASS = 0.1;
-
-var GRAVITY = 981 * 1.4; //
-var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS); // note - this could/should be moved in to addForce. Probably out here for performance.
 
 var colliders = [], numColliders = 1;
 
@@ -23,20 +23,16 @@ var ballGeo = new THREE.SphereGeometry( 20, 20, 20 );
 var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff } );
 var mesh;
 
-
 for (var i = 0; i < numColliders; i++){
   mesh = new THREE.Mesh( ballGeo, ballMaterial );
+//  mesh.position.set(0,0,20);
   colliders.push( mesh )
 }
 
 var dots = [];
-var numDots = 100;
-
+var numDots = 1000;
 var dotGeo = new THREE.SphereGeometry( 10, 10, 10 );
 var dotMaterial = new THREE.MeshPhongMaterial( { color: 0xff0000 } );
-
-var center = new THREE.Mesh( dotGeo, dotMaterial.clone() );
-center.material.color.setHex( 0x00ff00 );
 
 for (var i = 0; i < numDots; i++){
   mesh = new THREE.Mesh( dotGeo, dotMaterial );
@@ -69,15 +65,18 @@ Particle.prototype.calcPosition = function(timesq) {     // why is this squared?
 	newPos.multiplyScalar(DRAG).add(this.position);
 	newPos.add(this.a.multiplyScalar(timesq));
 
-	this.tmp = this.lastPosition;
+//	this.tmp = this.lastPosition;
 	this.lastPosition = this.position;
 	this.position = newPos;
 
 	this.a.set(0, 0, 0);
 };
 
+Particle.prototype.reset = function(){
+  this.position.copy(this.originalPosition);
+  this.lastPosition.copy(this.originalPosition); // ? necessary ?
+};
 
-var diff = new THREE.Vector3();
 
 // Takes in number of particles wide by height
 function Cloth(xParticleCount, yParticleCount, springLen) {
@@ -98,12 +97,12 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
 	this.height = this.springLength * this.h;
 
   this.particles  = [];
-  this.constrains = [];
   this.pinnedParticles = [];
 
-  this.addParticles();
+  this.lastTime = null;
+  this.lastAffectedParticles = [];
 
-  this.addConstraints();
+  this.addParticles();
 
   this.pinCorners();
 
@@ -129,60 +128,12 @@ Cloth.prototype.addParticles = function(){
           this.particlePosition(u/this.w, v/this.h),
           MASS
         )
-
 			);
-		}
-	}
-
-}
-
-Cloth.prototype.addConstraints = function(){
-	var u, v;
-
-  // starting at bottom left
-  // can the order of these two loops be flipped without problem?
-	for (v=0;v<this.h;v++) {
-		for (u=0;u<this.w;u++) {
-
-      // upwards
-      this.constrains.push([
-        this.particleAt(u,v),
-        this.particleAt(u,v+1),
-				this.springLength
-			]);
-
-      // rightwards
-      this.constrains.push([
-        this.particleAt(u,v),
-        this.particleAt(u+1,v),
-				this.springLength
-			]);
 
 		}
 	}
 
-  // edge case, rightmost column
-  // upwards (no rightwards)
-	for (u=this.w, v=0;v<this.h;v++) {
-    this.constrains.push([
-      this.particleAt(u,v),
-      this.particleAt(u,v+1),
-			this.springLength
-
-		]);
-	}
-
-  // edge case, topmost row
-  //
-	for (v=this.h, u=0;u<this.w;u++) {
-    this.constrains.push([
-      this.particleAt(u,v),
-      this.particleAt(u+1,v),
-			this.springLength
-		]);
-	}
-
-}
+};
 
 Cloth.prototype.particleAt = function(u,v){
   return this.particles[u + v * (this.w + 1)];
@@ -210,14 +161,13 @@ Cloth.prototype.pinAt = function(u,v){
 
 // conservation of energy
 // the position offset is spread between two nodes
-Cloth.prototype.satisfyConstraint = function(constraint) {
-  var p1 = constraint[0], p2 = constraint[1], distance  = constraint[2];
-	diff.subVectors(p2.position, p1.position);
+Cloth.prototype.satisfyConstraint = function(p1, p2) {
+  var diff = new THREE.Vector3().subVectors(p2.position, p1.position);
 
 	var currentDist = diff.length();
 	if (currentDist==0) return; // prevents division by 0
 
-	var correction = diff.multiplyScalar(1 - distance/currentDist);  // vectors
+	var correction = diff.multiplyScalar(1 - this.springLength/currentDist);  // vectors
 	var correctionHalf = correction.multiplyScalar(0.5);
 	p1.position.add(correctionHalf);
 	p2.position.sub(correctionHalf);
@@ -228,13 +178,11 @@ Cloth.prototype.satisfyConstraint = function(constraint) {
 // converts position and radius to index and index-step
 // returns a subset of particles in an array
 // assume that collider positions are world positions (Leap-data)
-Cloth.prototype.collisionLikelyParticles = function(collider){
+Cloth.prototype.nearbyParticles = function(collider){
   var particles = [];
 
-//  var offset = this.mesh.getWorldPosition().sub(collider.position);
   var offset = collider.position.clone().sub(this.mesh.getWorldPosition());
-  var radius = collider.geometry.parameters.radius;
-
+  var radius = collider.geometry.parameters.radius * 4;
 
   // Discard Z > collider radius * 8 (8 is a bit of a magic number here.)
   // Margin is taken against the origin position of the particle.
@@ -256,25 +204,38 @@ Cloth.prototype.collisionLikelyParticles = function(collider){
   radius = Math.ceil(radius);
 
 
+  if (radius * 2 > this.w || radius * 2 > this.h){
+    // this probably wouldn't be hard to implement - it would just need to subsect to be within w where appropriate.
+    // this would certainly mess up live constraint implementation.
+    throw "Unsupported: collision zone wider or higher than the mesh itself!"
+  }
+
   // offset is from center, but we're indexed from bottom left
   // this could be sloppy/off by one? Better do the addition before the unit change?
   // note that this is disabled for now, as the vertices are not currently centered on the mesh position, but their BL corner is.
-    offset.x += ~~(this.w / 2);
-    offset.y += ~~(this.h / 2);
+  offset.x += ~~(this.w / 2);
+  offset.y += ~~(this.h / 2);
 
 
   // call this for every row
   // start with center for now
   // forms a square
-  var row;
+  var row, leftBound, rightBound;
   for (var i = 0; i <= radius * 2; i++){
-    row = (offset.y - radius + i) * (this.w + 1);
+    row = (offset.y - radius + i);
+    leftBound  = offset.x - radius;
+    rightBound = offset.x + radius;
 
-    particles = particles.concat(
-      this.particles.slice(
-        (offset.x - radius) + row,
-        (offset.x + radius) + row + 1
-      ) // inclusive, exclusive
+    // check for and prevent wraparound
+    // possible optimization would be try and no longer necessitate these conditions.
+    if (rightBound >= this.w) rightBound = this.w - 1;
+    if (leftBound < 0) leftBound = 0;
+    if (row < 0) continue;
+
+    row *= (this.w + 1);
+
+    particles.push(
+      this.particles.slice(leftBound + row, rightBound + row + 1) // second arg is exclusive
     );
 
   }
@@ -282,79 +243,120 @@ Cloth.prototype.collisionLikelyParticles = function(collider){
   return particles;
 };
 
+// this should be made in to a Collider class
+Cloth.prototype.satisfyCollider = function(collider, radius, particle){
+  var position = particle.position;
+  var diff = new THREE.Vector3().subVectors(position, collider.position);
 
+  if (diff.length() < radius) {
+    // collided
+    diff.normalize().multiplyScalar(radius * 1.5);
+    position.copy(collider.position).add(diff);
+  }
+};
+
+arrayDiff = function(a1, a2) {
+  return a1.filter(function(i) {return a2.indexOf(i) < 0;});
+};
+
+// call this every animation frame
+// should be broken in to smaller methods
 Cloth.prototype.simulate = function(time) {
   if (this.lastTime) {
     var deltaTime = time - this.lastTime / 1000;
 
-    var i, il, particles = cloth.particles, particle, constrains, position, collisionLikelyParticles;
+    var i, il, j, jl, k, kl,
+      particle, particles = this.particles,
+      collider, radius,
+      nearbyParticles, affectedParticles = [], noLongerAffectedParticles,
+      pRightwards, pDownwards, pLeftwards, pUpwards;
 
-    for (i=0, il = particles.length; i < il; i++) {
-      particle = particles[i];
-//  		particle.addForce(gravity);
 
-      // actually using delta time seems a little off, so we hold this in for now. Only matters w/ gravity anyhow.
-      particle.calcPosition( Math.pow(18 /1000, 2) );
-    }
-
-    // Start Constrains
-
-    constrains = cloth.constrains;
-    il = constrains.length;
-    for (i=0;i<il;i++) {
-      this.satisfyConstraint(constrains[i]);
-    }
-
-    // Ball Constrains
 
     // compares every particle to the ball position
     // might be better off with a k-d tree!
     // see http://threejs.org/examples/#webgl_nearestneighbour
     // two optimizations, and compare:
-    // 1: Use k-d tree
-    // 2: Use Shader
+    // 1: Use k-d tree -- not necessary as we have natural indexing.
+    // 2: Use Shader -- not a good idea until happy with the actual algorithms going on. They should not be an excuse for wasted cycles.
 
+    // reset dots:
     for (i = 0; i < dots.length; i++){
       dots[i].visible = false;
     }
 
-    for (var j = 0; j < colliders.length; j++){
-      var collider = colliders[j],
-        radius = collider.geometry.parameters.radius;
+    // for every collider, run mesh calculations on effected nodes
+    for ( i = 0; i < colliders.length; i++){
+
+      collider = colliders[i];
+      radius = collider.geometry.parameters.radius;
 
       // this is a good optimization for a large number of colliders! (tested w/ 50 to 500).
-      collisionLikelyParticles = this.collisionLikelyParticles(collider);
-//      collisionLikelyParticles = particles;
-//      console.log('queried particles: ', collisionLikelyParticles.length);
+      // returns a 2d array of rows, which we use later to know where to apply constraints.
+      // shit - now we have to prevent loop-over
+      nearbyParticles = this.nearbyParticles(collider);
 
-      for (i=0, il = collisionLikelyParticles.length;i<il;i++) {
-
-        dots[i].visible = true;
-        dots[i].position.copy(collisionLikelyParticles[i].position);
-
-
-        position = collisionLikelyParticles[i].position;
-        diff.subVectors(position, collider.position);
-
-        if (diff.length() < radius) {
-          // collided
-          diff.normalize().multiplyScalar(radius * 1.5);
-          position.copy(collider.position).add(diff);
-        }
+      // store all particles in flat array
+      if (nearbyParticles.length > 0){
+        affectedParticles = affectedParticles.concat(
+          nearbyParticles.reduce(function(a,b){ return a.concat(b) })
+        );
       }
 
+      for (j=0, jl = nearbyParticles.length; j < jl; j++) {
+
+        for (k=0, kl = nearbyParticles[j].length; k < kl; k++) {
+          particle = nearbyParticles[j][k];
+
+          dots[(j * jl) + k].visible = true;
+          dots[(j * jl) + k].position.copy(particle.position);
+
+
+          // actually using delta time seems a little off, so we hold this in for now. Only matters w/ gravity anyhow.
+          particle.calcPosition( Math.pow(18 /1000, 2) );
+          
+
+          pRightwards = nearbyParticles[j][k + 1];
+          pLeftwards = nearbyParticles[j][k - 1];
+          if ( nearbyParticles[j-1]) {
+            pUpwards = nearbyParticles[j - 1][k];
+          }
+
+          // hopefully these conditions don't cause slowness :-/
+          // we would then have to re-pre-establish them.
+          if (pRightwards) this.satisfyConstraint(particle, pRightwards);
+
+          if ( nearbyParticles[j+1]) {
+            pDownwards = nearbyParticles[j+1][k];
+            if (pDownwards) this.satisfyConstraint(particle, pDownwards);
+          }
+          
+//          if (pUpwards && pDownwards && pLeftwards && pRightwards){
+            this.satisfyCollider(collider, radius, particle);
+//          }
+
+        }
+
+      }
+
+    }
+
+    // note - this could be made faster by taking advantage of the intrinsic ordering of the particles in the array
+    noLongerAffectedParticles = arrayDiff(this.lastAffectedParticles, affectedParticles);
+    this.lastAffectedParticles = affectedParticles;
+
+    for (i = 0, il=noLongerAffectedParticles.length; i < il; i++){
+      noLongerAffectedParticles[i].reset();
     }
 
     // Pin Constrains
     // Assuming that it is faster to correct a few positions than check a large number.
     for (i=0, il=this.pinnedParticles.length;i<il;i++) {
-      var particle = this.pinnedParticles[i];
-      particle.position.copy(particle.originalPosition);
-      particle.lastPosition.copy(particle.originalPosition); // ?
+      this.pinnedParticles[i].reset();
     }
 
 
-    for ( var i = 0, il = particles.length; i < il; i ++ ) {
+    for ( i = 0, il = particles.length; i < il; i ++ ) {
       this.geometry.vertices[ i ].copy( particles[ i ].position );
     }
 
