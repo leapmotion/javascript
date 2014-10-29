@@ -19,8 +19,7 @@
     <script src="js/VREffect.js"></script>
 
     <script src="//js.leapmotion.com/leap-0.6.3.min.js"></script>
-    <!-- Ship new plugins before shipping this. -->
-    <script src="js/leap-plugins-0.1.8.js"></script>
+    <script src="//js.leapmotion.com/leap-plugins-0.1.9.min.js"></script>
 	</head>
 
 	<body>
@@ -176,8 +175,9 @@
   //
 
   // Connect to localhost and start getting frames
-  Leap.loop({optimizeHMD: true});
+  Leap.loop();
 
+  // Docs: http://leapmotion.github.io/leapjs-plugins/main/transform/
   Leap.loopController.use('transform', {
 
     // This matrix flips the x, y, and z axis, scales to meters, and offsets the hands by -8cm.
@@ -190,7 +190,7 @@
 
   });
 
-  // See --- todo --- for full docs & options.
+  // Docs: http://leapmotion.github.io/leapjs-plugins/main/bone-hand/
   Leap.loopController.use('boneHand', {
 
     // If you already have a scene or want to create it yourself, you can pass it in here
