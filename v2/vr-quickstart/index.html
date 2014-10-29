@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>Leap VR Quickstart</title>
+		<meta charset="utf-8">
+		<style>
+			body {
+				font-family: Monospace;
+				margin: 0px;
+        padding: 0;
+			}
+
+		</style>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
+    <!-- These two scripts are brought in from the THREE.js repo -->
+    <!-- VREffect has been slightly customized, see https://github.com/mrdoob/three.js/pull/5523 -->
+    <script src="js/VRControls.js"></script>
+    <script src="js/VREffect.js"></script>
+
+    <script src="//js.leapmotion.com/leap-0.6.3.min.js"></script>
+    <script src="//js.leapmotion.com/leap-plugins-0.1.9.min.js"></script>
+	</head>
+
+	<body>
+
+    <canvas id="scene"></canvas>
+
+  <p>
+    Notes on this example
+  </p>
+  <ul>
+    <li> Leaves units in mm -  a little easier to work with? </li>
+    <li> Has position tracking. </li>
+    <li> It is a really really good idea to set up 60Hz refresh rate. </li>
+    <li> How to use RiftEffect instead? </li>
+    <li> The positional tracker light will blink once when plugged in to indicate readyness, and be on consistently when tracking. </li>
+  </ul>
+
+	</body>
+
+<script>
+  // Including this in the footer so that the bone hand plugin can create its canvas on the body
+
+  //
+  // CREATE THE SCENE
+  //
+  //
+
+  var scene = new THREE.Scene();
+
+  var camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    10000
+  );
+
+  var canvas = document.getElementById('scene');
+  canvas.style.position = 'absolute';
+  canvas.style.top = 0;
+  canvas.style.left = 0;
+
+  var renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    canvas: canvas
+  });
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  onResize = function() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  };
+  window.addEventListener('resize', onResize, false);
+
+
+  var light = new THREE.PointLight(0xffffff, 1, 1000);
+  scene.add(light);
+
+  axisHelper = new THREE.AxisHelper(0.060);
+  axisHelper.position.set(0,-0.03,-0.30);
+  scene.add(axisHelper);
+
+  //
+  // ADD CUBES (blah blah)
+  //
+  //
+
+  var cubeGeo = new THREE.BoxGeometry(0.032, 0.032, 0.032);
+  var cubeMesh = new THREE.MeshPhongMaterial({color: 0x00cc00});
+
+  // forwards
+  var cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(-0.06,-0.03,-0.3);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(0.06,-0.03,-0.3);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(-0.06,-0.03,-0.42);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(0.06,-0.03,-0.42);
+  scene.add(cube);
+
+
+  // right
+  cubeMesh = new THREE.MeshPhongMaterial({color: 0x0000cc});
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(0.3,-0.03,-0.06);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(0.3,-0.03,0.06);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(0.42,-0.03,-0.06);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(0.42,-0.03,0.06);
+  scene.add(cube);
+
+  // left
+  cubeMesh = new THREE.MeshPhongMaterial({color: 0xcc0000});
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(-0.3,-0.03,-0.06);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(-0.3,-0.03,0.06);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(-0.42,-0.03,-0.06);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(-0.42,-0.03,0.06);
+  scene.add(cube);
+
+
+  // back
+  cubeMesh = new THREE.MeshPhongMaterial({color: 0xcccc00});
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(-0.06,-0.03,0.3);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(0.06,-0.03,0.3);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(-0.06,-0.03,0.42);
+  scene.add(cube);
+
+  cube = new THREE.Mesh(cubeGeo, cubeMesh);
+  cube.position.set(0.06,-0.03,0.42);
+  scene.add(cube);
+
+
+
+  //
+  // ADD LEAP MOTION
+  //
+  //
+
+  // Connect to localhost and start getting frames
+  Leap.loop();
+
+  // Docs: http://leapmotion.github.io/leapjs-plugins/main/transform/
+  Leap.loopController.use('transform', {
+
+    // This matrix flips the x, y, and z axis, scales to meters, and offsets the hands by -8cm.
+    vr: true,
+
+    // This causes the camera's matrix transforms (position, rotation, scale) to be applied to the hands themselves
+    // The parent of the bones remain the scene, allowing the data to remain in easy-to-work-with world space.
+    // (As the hands will usually interact with multiple objects in the scene.)
+    effectiveParent: camera
+
+  });
+
+  // Docs: http://leapmotion.github.io/leapjs-plugins/main/bone-hand/
+  Leap.loopController.use('boneHand', {
+
+    // If you already have a scene or want to create it yourself, you can pass it in here
+    // Alternatively, you can pass it in whenever you want by doing
+    // Leap.loopController.plugins.boneHand.scene = myScene.
+    scene: scene,
+
+    // Display the arm
+    arm: true
+
+  });
+
+
+
+  //
+  // ADD VIRTUAL REALITY
+  //
+  //
+
+  // Moves (translates and rotates) the camera
+  var vrControls = new THREE.VRControls(camera);
+
+  var vrEffect = new THREE.VREffect(renderer);
+
+
+  var onkey = function(event) {
+    if (event.key === 'z') {
+      vrControls.zeroSensor();
+    }
+    if (event.key === 'f') {
+      return vrEffect.setFullScreen(true);
+    }
+  };
+
+  window.addEventListener("keypress", onkey, true);
+
+
+
+  //
+  // MAKE IT GO
+  //
+  //
+
+  var render = function() {
+    vrControls.update();
+    vrEffect.render(scene, camera);
+
+    requestAnimationFrame(render);
+  };
+
+  render();
+
+
+  //
+  // Add a debug message Real quick
+  // Prints out when receiving oculus data.
+  //
+  //
+
+  var receivingPositionalData = false;
+  var receivingOrientationData = false;
+
+  var timerID = setInterval(function(){
+
+    if (camera.position.x !== 0 && !receivingPositionalData){
+      receivingPositionalData = true;
+      console.log("receiving positional data");
+    }
+
+    if (camera.quaternion.x !== 0 && !receivingOrientationData){
+      receivingOrientationData = true;
+      console.log("receiving orientation data");
+    }
+
+    if (receivingOrientationData && receivingPositionalData){
+      clearInterval(timerID);
+    }
+
+  }, 2000);
+
+
+
+
+</script>
+</html>
