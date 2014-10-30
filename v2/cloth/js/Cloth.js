@@ -65,7 +65,7 @@ Particle.prototype.calcPosition = function(timesq) {     // why is this squared?
 	newPos.multiplyScalar(DRAG).add(this.position);
 	newPos.add(this.a.multiplyScalar(timesq));
 
-//	this.tmp = this.lastPosition;
+	this.tmp = this.lastPosition;  // as this is a reference, we set it to something which is ok to mutate later.
 	this.lastPosition = this.position;
 	this.position = newPos;
 
@@ -228,7 +228,7 @@ Cloth.prototype.nearbyParticles = function(collider){
 
     // check for and prevent wraparound
     // possible optimization would be try and no longer necessitate these conditions.
-    if (rightBound >= this.w) rightBound = this.w - 1;
+    if (rightBound >= this.w) rightBound = this.w;
     if (leftBound < 0) leftBound = 0;
     if (row < 0) continue;
 
