@@ -19,19 +19,19 @@ var MASS = 0.1;
 
 var colliders = [], numColliders = 1;
 
-var ballGeo = new THREE.SphereGeometry( 20, 20, 20 );
+var ballGeo = new THREE.SphereGeometry( 4, 20, 20 );
 var ballMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff } );
 var mesh;
 
 for (var i = 0; i < numColliders; i++){
   mesh = new THREE.Mesh( ballGeo, ballMaterial );
-//  mesh.position.set(0,0,20);
+  mesh.position.set(0,0,20);
   colliders.push( mesh )
 }
 
 var dots = [];
-var numDots = 1000;
-var dotGeo = new THREE.SphereGeometry( 10, 10, 10 );
+var numDots = 5000;
+var dotGeo = new THREE.SphereGeometry( 1, 10, 10 );
 var dotMaterial = new THREE.MeshPhongMaterial( { color: 0xff0000 } );
 
 for (var i = 0; i < numDots; i++){
@@ -164,7 +164,16 @@ Cloth.prototype.pinAt = function(u,v){
 Cloth.prototype.satisfyConstraint = function(p1, p2) {
   var diff = new THREE.Vector3().subVectors(p2.position, p1.position);
 
-	var currentDist = diff.length();
+// note: length here could be replaced:
+// In fact, using only one iteration and approximating the square root removes the stiffness that
+// appears otherwise when the sticks are perfectly stiff.
+//  http://web.archive.org/web/20080410171619/http://www.teknikus.dk/tj/gdc2001.htm
+//  // Pseudo-code for satisfying (C2) using sqrt approximation
+//  delta = x2-x1;
+//  delta*=restlength*restlength/(delta*delta+restlength*restlength)-0.5;
+//  x1 += delta;
+//  x2 -= delta;
+//	var currentDist = diff.length();
 	if (currentDist==0) return; // prevents division by 0
 
 	var correction = diff.multiplyScalar(1 - this.springLength/currentDist);  // vectors
@@ -172,6 +181,7 @@ Cloth.prototype.satisfyConstraint = function(p1, p2) {
 	p1.position.add(correctionHalf);
 	p2.position.sub(correctionHalf);
 };
+
 
 // takes the position of the collider
 // subtracts that of the cloth mesh
@@ -182,7 +192,7 @@ Cloth.prototype.nearbyParticles = function(collider){
   var particles = [];
 
   var offset = collider.position.clone().sub(this.mesh.getWorldPosition());
-  var radius = collider.geometry.parameters.radius * 4;
+  var radius = collider.geometry.parameters.radius * 16;
 
   // Discard Z > collider radius * 8 (8 is a bit of a magic number here.)
   // Margin is taken against the origin position of the particle.
@@ -202,13 +212,6 @@ Cloth.prototype.nearbyParticles = function(collider){
 
   radius /= (this.springLength * 2); // double for good measure
   radius = Math.ceil(radius);
-
-
-  if (radius * 2 > this.w || radius * 2 > this.h){
-    // this probably wouldn't be hard to implement - it would just need to subsect to be within w where appropriate.
-    // this would certainly mess up live constraint implementation.
-    throw "Unsupported: collision zone wider or higher than the mesh itself!"
-  }
 
   // offset is from center, but we're indexed from bottom left
   // this could be sloppy/off by one? Better do the addition before the unit change?
@@ -250,7 +253,8 @@ Cloth.prototype.satisfyCollider = function(collider, radius, particle){
 
   if (diff.length() < radius) {
     // collided
-    diff.normalize().multiplyScalar(radius * 1.5);
+//    diff.normalize().multiplyScalar(radius * 1.5);
+    diff.normalize().multiplyScalar(radius);
     position.copy(collider.position).add(diff);
   }
 };
@@ -346,7 +350,7 @@ Cloth.prototype.simulate = function(time) {
     this.lastAffectedParticles = affectedParticles;
 
     for (i = 0, il=noLongerAffectedParticles.length; i < il; i++){
-      noLongerAffectedParticles[i].reset();
+//      noLongerAffectedParticles[i].reset();
     }
 
     // Pin Constrains
