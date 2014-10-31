@@ -44,16 +44,19 @@ function Particle(position, mass) {
 	this.position         = position;
 	this.lastPosition     = position.clone();
 	this.originalPosition = position.clone();
-	this.a = new THREE.Vector3(0, 0, 0); // acceleration
-	this.mass = mass;
-	this.tmp = new THREE.Vector3(); // wat
-	this.tmp2 = new THREE.Vector3();
+  // we always add to `w`, as it's the length of a position delta
+//	this.a = new THREE.Vector4(0, 0, 0, -1000); // acceleration  -- what constant should we choose?
+	this.a = new THREE.Vector4(0, 0, 0, -981 * 1.4); // amount similar to gravity in original.
+	this.mass = mass; // constant and unused.
+	this.tmpPos = new THREE.Vector4(); // allows pointer switching
+	this.tmpForce = new THREE.Vector4();
+	this.diff3  = new THREE.Vector3();
 }
 
 // Force -> Acceleration
 Particle.prototype.addForce = function(force) {
 	this.a.add(
-		this.tmp2.copy(force)
+		this.tmpForce.copy(force)
 	);
 };
 
@@ -61,20 +64,39 @@ Particle.prototype.addForce = function(force) {
 // Performs verlet integration
 // instantaneous velocity times drag plus position plus acceleration times time
 Particle.prototype.calcPosition = function(timesq) {     // why is this squared? And in seconds ?
-	var newPos = this.tmp.subVectors(this.position, this.lastPosition);
+	var newPos = this.tmpPos.subVectors(this.position, this.lastPosition);
+//  console.assert(!isNaN(newPos.x));
 	newPos.multiplyScalar(DRAG).add(this.position);
 	newPos.add(this.a.multiplyScalar(timesq));
+//  console.assert(!isNaN(this.position.x));
 
-	this.tmp = this.lastPosition;  // as this is a reference, we set it to something which is ok to mutate later.
+	this.tmpPos = this.lastPosition;  // as this is a reference, we set it to something which is ok to mutate later.
 	this.lastPosition = this.position;
 	this.position = newPos;
 
-	this.a.set(0, 0, 0);
+  // for now, constant tensional force
+//	this.a.set(0, 0, 0);
 };
 
-Particle.prototype.reset = function(){
-  this.position.copy(this.originalPosition);
-  this.lastPosition.copy(this.originalPosition); // ? necessary ?
+// converts position offset in to tension.
+Particle.prototype.fixPosition = function(){
+  this.diff3.subVectors(this.position, this.originalPosition);
+
+//  console.assert(this.position.equals(this.lastPosition));
+//  console.assert((new THREE.Vector4).subVectors(this.position, this.lastPosition).length() < 1);
+//  this.position.copy(this.originalPosition);
+//  this.lastPosition.copy(this.originalPosition); // ? necessary ?
+
+  // is this conversion of xyz to w correct?
+  this.position.set(
+    this.originalPosition.x,
+    this.originalPosition.y,
+    this.originalPosition.z,
+    this.position.w + this.diff3.length()
+  );
+
+
+//  console.assert(!isNaN(this.position.x));
 };
 
 
@@ -102,9 +124,13 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
   this.lastTime = null;
   this.lastAffectedParticles = [];
 
+  // Temporary usage
+  this.diff3 = new THREE.Vector3;
+  this.diff4 = new THREE.Vector4;
+
   this.addParticles();
 
-  this.pinCorners();
+//  this.pinCorners();
 
 }
 
@@ -145,7 +171,7 @@ Cloth.prototype.particleAt = function(u,v){
 // sets the vertex position for the parametric geometry, on initialization. Gets updated on render.
 Cloth.prototype.particlePosition = function(u, v) {
   // for now, only positive numbers, easier to track.
-  return new THREE.Vector3(
+  return new THREE.Vector4(
     (u - 0.5) * this.width, // was (u - 0.5)
     (v - 0.5) * this.height, // was (v - 0.5)
     0
@@ -162,7 +188,7 @@ Cloth.prototype.pinAt = function(u,v){
 // conservation of energy
 // the position offset is spread between two nodes
 Cloth.prototype.satisfyConstraint = function(p1, p2) {
-  var diff = new THREE.Vector3().subVectors(p2.position, p1.position);
+  this.diff4.subVectors(p2.position,p1.position);
 
 // note: length here could be replaced:
 // In fact, using only one iteration and approximating the square root removes the stiffness that
@@ -173,13 +199,28 @@ Cloth.prototype.satisfyConstraint = function(p1, p2) {
 //  delta*=restlength*restlength/(delta*delta+restlength*restlength)-0.5;
 //  x1 += delta;
 //  x2 -= delta;
-//	var currentDist = diff.length();
+	var currentDist = this.diff4.length();
 	if (currentDist==0) return; // prevents division by 0
 
-	var correction = diff.multiplyScalar(1 - this.springLength/currentDist);  // vectors
+	var correction = this.diff4.multiplyScalar(1 - this.springLength/currentDist);  // vectors
 	var correctionHalf = correction.multiplyScalar(0.5);
 	p1.position.add(correctionHalf);
 	p2.position.sub(correctionHalf);
+};
+
+
+// this should be made in to a Collider class
+Cloth.prototype.satisfyCollider = function(collider, radius, particle){
+  var position = particle.position;
+
+  // this vec3 takes only the 3d components of position.
+  this.diff3.subVectors(position, collider.position);
+
+  if (this.diff3.length() < radius) { // collided
+    this.diff3.normalize().multiplyScalar(radius);
+//    position.copy(collider.position).add(diff);
+    position.add(this.diff3);
+  }
 };
 
 
@@ -246,19 +287,6 @@ Cloth.prototype.nearbyParticles = function(collider){
   return particles;
 };
 
-// this should be made in to a Collider class
-Cloth.prototype.satisfyCollider = function(collider, radius, particle){
-  var position = particle.position;
-  var diff = new THREE.Vector3().subVectors(position, collider.position);
-
-  if (diff.length() < radius) {
-    // collided
-//    diff.normalize().multiplyScalar(radius * 1.5);
-    diff.normalize().multiplyScalar(radius);
-    position.copy(collider.position).add(diff);
-  }
-};
-
 arrayDiff = function(a1, a2) {
   return a1.filter(function(i) {return a2.indexOf(i) < 0;});
 };
@@ -315,10 +343,13 @@ Cloth.prototype.simulate = function(time) {
           dots[(j * jl) + k].visible = true;
           dots[(j * jl) + k].position.copy(particle.position);
 
+//          console.assert(!isNaN(particle.position.x));
+
 
           // actually using delta time seems a little off, so we hold this in for now. Only matters w/ gravity anyhow.
           particle.calcPosition( Math.pow(18 /1000, 2) );
-          
+
+//          console.assert(!isNaN(particle.position.x));
 
           pRightwards = nearbyParticles[j][k + 1];
           pLeftwards = nearbyParticles[j][k - 1];
@@ -329,15 +360,19 @@ Cloth.prototype.simulate = function(time) {
           // hopefully these conditions don't cause slowness :-/
           // we would then have to re-pre-establish them.
           if (pRightwards) this.satisfyConstraint(particle, pRightwards);
+//          console.assert(!isNaN(particle.position.x));
 
           if ( nearbyParticles[j+1]) {
             pDownwards = nearbyParticles[j+1][k];
+//            console.assert(!isNaN(pDownwards.position.x));
             if (pDownwards) this.satisfyConstraint(particle, pDownwards);
+//            console.assert(!isNaN(particle.position.x));
           }
-          
-//          if (pUpwards && pDownwards && pLeftwards && pRightwards){
+
+          if (pUpwards && pDownwards && pLeftwards && pRightwards){
             this.satisfyCollider(collider, radius, particle);
-//          }
+//            console.assert(!isNaN(particle.position.x));
+          }
 
         }
 
@@ -350,13 +385,13 @@ Cloth.prototype.simulate = function(time) {
     this.lastAffectedParticles = affectedParticles;
 
     for (i = 0, il=noLongerAffectedParticles.length; i < il; i++){
-//      noLongerAffectedParticles[i].reset();
+      noLongerAffectedParticles[i].fixPosition();
     }
 
     // Pin Constrains
     // Assuming that it is faster to correct a few positions than check a large number.
     for (i=0, il=this.pinnedParticles.length;i<il;i++) {
-      this.pinnedParticles[i].reset();
+      this.pinnedParticles[i].fixPosition();
     }
 
 
