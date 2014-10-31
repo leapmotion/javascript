@@ -174,6 +174,7 @@ Cloth.prototype.particlePosition = function(u, v) {
   return new THREE.Vector4(
     (u - 0.5) * this.width, // was (u - 0.5)
     (v - 0.5) * this.height, // was (v - 0.5)
+    0,
     0
   );
 };
