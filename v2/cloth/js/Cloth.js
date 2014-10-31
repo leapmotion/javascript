@@ -73,10 +73,8 @@ Particle.prototype.addForce = function(force) {
 // instantaneous velocity times drag plus position plus acceleration times time
 Particle.prototype.calcPosition = function(timesq) {     // why is this squared? And in seconds ?
 	var newPos = this.tmpPos.subVectors(this.position, this.lastPosition);
-//  console.assert(!isNaN(newPos.x));
 	newPos.multiplyScalar(DRAG).add(this.position);
 	newPos.add(this.a.multiplyScalar(timesq));
-//  console.assert(!isNaN(this.position.x));
 
 	this.tmpPos = this.lastPosition;  // as this is a reference, we set it to something which is ok to mutate later.
 	this.lastPosition = this.position;
@@ -198,6 +196,7 @@ Cloth.prototype.pinAt = function(u,v){
 // the position offset is spread between two nodes
 Cloth.prototype.satisfyConstraint = function(p1, p2) {
   this.diff4.subVectors(p2.position,p1.position);
+//  console.assert(!isNaN(this.diff4.x));
 
 // note: length here could be replaced:
 // In fact, using only one iteration and approximating the square root removes the stiffness that
@@ -227,8 +226,10 @@ Cloth.prototype.satisfyCollider = function(collider, radius, particle){
 
   if (this.diff3.length() < radius) { // collided
     this.diff3.normalize().multiplyScalar(radius);
-//    position.copy(collider.position).add(diff);
-    position.add(this.diff3);
+//    position.add(this.diff3);
+    position.x += this.diff3.x;
+    position.y += this.diff3.y;
+    position.z += this.diff3.z;
   }
 };
 
@@ -398,13 +399,13 @@ Cloth.prototype.simulate = function(time) {
           dots[(j * jl) + k].visible = true;
           dots[(j * jl) + k].position.copy(particle.position);
 
-//          console.assert(!isNaN(particle.position.x));
+//          console.assert(!isNaN(particle.position.w));
 
 
           // actually using delta time seems a little off, so we hold this in for now. Only matters w/ gravity anyhow.
           particle.calcPosition( Math.pow(18 /1000, 2) );
 
-//          console.assert(!isNaN(particle.position.x));
+//          console.assert(!isNaN(particle.position.w));
 
           pRightwards = nearbyParticles[j][k + 1];
           pLeftwards = nearbyParticles[j][k - 1];
@@ -414,16 +415,18 @@ Cloth.prototype.simulate = function(time) {
 
           // hopefully these conditions don't cause slowness :-/
           // we would then have to re-pre-establish them.
-//          if (pRightwards) this.satisfyConstraint(particle, pRightwards);
+          if (pRightwards) this.satisfyConstraint(particle, pRightwards);
+//          console.assert(!isNaN(particle.position.w));
 
           if ( nearbyParticles[j+1]) {
             pDownwards = nearbyParticles[j+1][k];
-//            if (pDownwards) this.satisfyConstraint(particle, pDownwards);
+            if (pDownwards) this.satisfyConstraint(particle, pDownwards);
+//            console.assert(!isNaN(particle.position.w));
           }
 
           if (pUpwards && pDownwards && pLeftwards && pRightwards){
-//            this.satisfyCollider(collider, radius, particle);
-//            console.assert(!isNaN(particle.position.x));
+            this.satisfyCollider(collider, radius, particle);
+//            console.assert(!isNaN(particle.position.w));
           }
 
         }
