@@ -31,7 +31,7 @@ for (var i = 0; i < numColliders; i++){
 
 var dots = [];
 var numDots = 5000;
-var dotGeo = new THREE.SphereGeometry( 2, 10, 10 );
+var dotGeo = new THREE.SphereGeometry( 1, 10, 10 );
 var dotMaterial = new THREE.MeshPhongMaterial( { color: 0xff0000 } );
 
 for (var i = 0; i < numDots; i++){
@@ -46,64 +46,6 @@ for (var i = 0; i < 1000; i++){
   mesh = new THREE.Mesh( dotGeo, dotMaterial );
   greenDots.push( mesh )
 }
-
-
-function Particle(position, mass) {
-	this.position         = position;
-	this.lastPosition     = position.clone();
-	this.originalPosition = position.clone();
-  // we always add to `w`, as it's the length of a position delta
-//	this.a = new THREE.Vector4(0, 0, 0, -1000); // acceleration  -- what constant should we choose?
-	this.a = new THREE.Vector4(0, 0, 0, -981 * 1.4); // amount similar to gravity in original.
-	this.mass = mass; // constant and unused.
-	this.tmpPos = new THREE.Vector4(); // allows pointer switching
-	this.tmpForce = new THREE.Vector4();
-	this.diff3  = new THREE.Vector3();
-}
-
-// Force -> Acceleration
-Particle.prototype.addForce = function(force) {
-	this.a.add(
-		this.tmpForce.copy(force)
-	);
-};
-
-
-// Performs verlet integration
-// instantaneous velocity times drag plus position plus acceleration times time
-Particle.prototype.calcPosition = function(timesq) {     // why is this squared? And in seconds ?
-	var newPos = this.tmpPos.subVectors(this.position, this.lastPosition);
-	newPos.multiplyScalar(DRAG).add(this.position);
-	newPos.add(this.a.multiplyScalar(timesq));
-
-	this.tmpPos = this.lastPosition;  // as this is a reference, we set it to something which is ok to mutate later.
-	this.lastPosition = this.position;
-	this.position = newPos;
-
-  // for now, constant tensional force
-//	this.a.set(0, 0, 0);
-};
-
-// converts position offset in to tension.
-Particle.prototype.fixPosition = function(){
-  this.diff3.subVectors(this.position, this.originalPosition);
-
-//  console.assert(this.position.equals(this.lastPosition));
-//  console.assert((new THREE.Vector4).subVectors(this.position, this.lastPosition).length() < 1);
-//  this.position.copy(this.originalPosition);
-//  this.lastPosition.copy(this.originalPosition); // ? necessary ?
-
-  // is this conversion of xyz to w correct?
-  this.position.set(
-    this.originalPosition.x,
-    this.originalPosition.y,
-    this.originalPosition.z,
-    this.position.w + this.diff3.length()
-  );
-
-
-//  console.assert(!isNaN(this.position.x));
-};
 
 
 // Takes in number of particles wide by height
@@ -126,27 +68,17 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
 
   this.particles  = [];
   this.pinnedParticles = [];
-
-  this.lastTime = null;
-  this.lastAffectedParticles = [];
+  this.constrains = [];
 
   // Temporary usage
   this.diff3 = new THREE.Vector3;
   this.diff4 = new THREE.Vector4;
 
   this.addParticles();
-
-//  this.pinCorners();
+  this.addConstraints();
 
 }
 
-Cloth.prototype.pinCorners = function(){
-  // Four corners:
-  this.pinAt(0,0);
-  this.pinAt(0,this.h);
-  this.pinAt(this.w,0);
-  this.pinAt(this.w,this.h);
-};
 
 Cloth.prototype.addParticles = function(){
 	var u, v;
@@ -163,6 +95,51 @@ Cloth.prototype.addParticles = function(){
 			);
 
 		}
+	}
+
+};
+
+
+Cloth.prototype.addConstraints = function(){
+	var u, v;
+
+  // starting at bottom left
+  // can the order of these two loops be flipped without problem?
+	for (v=0;v<this.h;v++) {
+		for (u=0;u<this.w;u++) {
+
+      // upwards
+      this.constrains.push([
+        this.particleAt(u,v),
+        this.particleAt(u,v+1)
+			]);
+
+      // rightwards
+      this.constrains.push([
+        this.particleAt(u,v),
+        this.particleAt(u+1,v)
+			]);
+
+		}
+	}
+
+  // edge case, rightmost column
+  // upwards (no rightwards)
+	for (u=this.w, v=0;v<this.h;v++) {
+    this.constrains.push([
+      this.particleAt(u,v),
+      this.particleAt(u,v+1)
+
+		]);
+	}
+
+  // edge case, topmost row
+  //
+	for (v=this.h, u=0;u<this.w;u++) {
+    this.constrains.push([
+      this.particleAt(u,v),
+      this.particleAt(u+1,v)
+		]);
 	}
 
 };
@@ -239,6 +216,16 @@ Cloth.prototype.satisfyCollider = function(collider, radius, particle){
 // converts position and radius to index and index-step
 // returns a subset of particles in an array
 // assume that collider positions are world positions (Leap-data)
+
+
+// in order to do multiple regions:
+// first solve top right corner only
+// store array of rectangles, each rectangle defined by four points
+// do a memcopy of rectangle data so that they can be mutated (split) later without trouble
+// if corner intersecting, solve for line segments and areas independently
+// must be a recursive function?
+//
+
 Cloth.prototype.nearbyParticles = function(collider){
   var particles = [];
   var boundaryParticles = []; // these ones get pinned.
@@ -343,131 +330,111 @@ arrayDiff = function(a1, a2) {
 // call this every animation frame
 // should be broken in to smaller methods
 Cloth.prototype.simulate = function(time) {
-  if (this.lastTime) {
-    var deltaTime = time - this.lastTime / 1000;
 
-    var i, il, j, jl, k, kl,
-      particle, particles = this.particles,
-      collider, radius,
-      nearbyParticles, boundaryParticles, tuple, affectedParticles = [], noLongerAffectedParticles,
-      pRightwards, pDownwards, pLeftwards, pUpwards;
+  var i, il, j, jl, k, kl,
+    particle, particles = this.particles,
+    collider, radius,
+    nearbyParticles, boundaryParticles, tuple, affectedParticles = [], // noLongerAffectedParticles,
+    pRightwards, pDownwards;
 
 
 
-    // compares every particle to the ball position
-    // might be better off with a k-d tree!
-    // see http://threejs.org/examples/#webgl_nearestneighbour
-    // two optimizations, and compare:
-    // 1: Use k-d tree -- not necessary as we have natural indexing.
-    // 2: Use Shader -- not a good idea until happy with the actual algorithms going on. They should not be an excuse for wasted cycles.
+  // compares every particle to the ball position
+  // might be better off with a k-d tree!
+  // see http://threejs.org/examples/#webgl_nearestneighbour
+  // two optimizations, and compare:
+  // 1: Use k-d tree -- not necessary as we have natural indexing.
+  // 2: Use Shader -- not a good idea until happy with the actual algorithms going on. They should not be an excuse for wasted cycles.
 
-    // reset dots:
-    for (i = 0; i < dots.length; i++){
-      dots[i].visible = false;
-    }
+  // reset dots:
+//    for (i = 0; i < dots.length; i++){
+//      dots[i].visible = false;
+//    }
+//
+//    // reset dots:
+//    for (i = 0; i < greenDots.length; i++){
+//      greenDots[i].visible = false;
+//    }
 
-    // reset dots:
-    for (i = 0; i < greenDots.length; i++){
-      greenDots[i].visible = false;
-    }
+  // for every collider, run mesh calculations on effected nodes
+  for ( i = 0; i < colliders.length; i++){
 
-    // for every collider, run mesh calculations on effected nodes
-    for ( i = 0; i < colliders.length; i++){
+    collider = colliders[i];
+    radius = collider.geometry.parameters.radius;
 
-      collider = colliders[i];
-      radius = collider.geometry.parameters.radius;
+    // this is a good optimization for a large number of colliders! (tested w/ 50 to 500).
+    // returns a 2d array of rows, which we use later to know where to apply constraints.
+    // shit - now we have to prevent loop-over
+    tuple = this.nearbyParticles(collider);
+    nearbyParticles   = tuple[0];
+    boundaryParticles = tuple[1];
 
-      // this is a good optimization for a large number of colliders! (tested w/ 50 to 500).
-      // returns a 2d array of rows, which we use later to know where to apply constraints.
-      // shit - now we have to prevent loop-over
-      tuple = this.nearbyParticles(collider);
-      nearbyParticles   = tuple[0];
-      boundaryParticles = tuple[1];
+    // store all particles in flat array
+//    if (nearbyParticles.length > 0){
+//      affectedParticles = affectedParticles.concat(
+//        nearbyParticles.reduce(function(a,b){ return a.concat(b) })
+//      );
+//    }
 
-      // store all particles in flat array
-      if (nearbyParticles.length > 0){
-        affectedParticles = affectedParticles.concat(
-          nearbyParticles.reduce(function(a,b){ return a.concat(b) })
-        );
-      }
+    for (j=0, jl = nearbyParticles.length; j < jl; j++) {
 
-      for (j=0, jl = nearbyParticles.length; j < jl; j++) {
+      for (k=0, kl = nearbyParticles[j].length; k < kl; k++) {
+        particle = nearbyParticles[j][k];
 
-        for (k=0, kl = nearbyParticles[j].length; k < kl; k++) {
-          particle = nearbyParticles[j][k];
-
-          dots[(j * jl) + k].visible = true;
-          dots[(j * jl) + k].position.copy(particle.position);
-
-//          console.assert(!isNaN(particle.position.w));
+//          dots[(j * jl) + k].visible = true;
+//          dots[(j * jl) + k].position.copy(particle.position);
 
 
-          // actually using delta time seems a little off, so we hold this in for now. Only matters w/ gravity anyhow.
-          particle.calcPosition( Math.pow(18 /1000, 2) );
+        particle.calcPosition();
 
-//          console.assert(!isNaN(particle.position.w));
+        pRightwards = nearbyParticles[j][k + 1];
 
-          pRightwards = nearbyParticles[j][k + 1];
-          pLeftwards = nearbyParticles[j][k - 1];
-          if ( nearbyParticles[j-1]) {
-            pUpwards = nearbyParticles[j - 1][k];
-          }
+        // hopefully these conditions don't cause slowness :-/
+        // we would then have to re-pre-establish them.
+        if (pRightwards) this.satisfyConstraint(particle, pRightwards);
 
-          // hopefully these conditions don't cause slowness :-/
-          // we would then have to re-pre-establish them.
-          if (pRightwards) this.satisfyConstraint(particle, pRightwards);
-//          console.assert(!isNaN(particle.position.w));
-
-          if ( nearbyParticles[j+1]) {
-            pDownwards = nearbyParticles[j+1][k];
-            if (pDownwards) this.satisfyConstraint(particle, pDownwards);
-//            console.assert(!isNaN(particle.position.w));
-          }
-
-          if (pUpwards && pDownwards && pLeftwards && pRightwards){
-            this.satisfyCollider(collider, radius, particle);
-//            console.assert(!isNaN(particle.position.w));
-          }
-
+        if ( nearbyParticles[j+1]) {
+          pDownwards = nearbyParticles[j+1][k];
+          if (pDownwards) this.satisfyConstraint(particle, pDownwards);
         }
 
+        this.satisfyCollider(collider, radius, particle);
+
       }
 
     }
 
-    // note - this could be made faster by taking advantage of the intrinsic ordering of the particles in the array
-    noLongerAffectedParticles = arrayDiff(this.lastAffectedParticles, affectedParticles);
-    this.lastAffectedParticles = affectedParticles;
-
-    // note that right now, it is undefined what happens when a collider disappears when colliding with particles
-    // they could instantly reset
-    // it would be cooler, and more fault tolerant, if the glided back in to position.
-
-//    console.log(boundaryParticles.length);
-    for (i = 0, il=boundaryParticles.length; i < il; i++){
-      // this could probably be optimized out
-      if (!boundaryParticles[i]) continue;
-
-      greenDots[i].visible = true;
-      greenDots[i].position.copy(boundaryParticles[i].position);
-
-      boundaryParticles[i].fixPosition();
-    }
-
-
-    // can we do anything to enhance the visuals - with a good lighting, material, etc?
-    for ( i = 0, il = particles.length; i < il; i ++ ) {
-      this.geometry.vertices[ i ].copy( particles[ i ].position );
-    }
-
-    this.geometry.computeFaceNormals();
-    this.geometry.computeVertexNormals();
-
-    this.geometry.normalsNeedUpdate = true;
-    this.geometry.verticesNeedUpdate = true;
   }
 
-  this.lastTime = time;
+  // note - this could be made faster by taking advantage of the intrinsic ordering of the particles in the array
+//    noLongerAffectedParticles = arrayDiff(this.lastAffectedParticles, affectedParticles);
+//    this.lastAffectedParticles = affectedParticles;
+
+  // note that right now, it is undefined what happens when a collider disappears when colliding with particles
+  // they could instantly reset
+  // it would be cooler, and more fault tolerant, if the glided back in to position.
+
+  for (i = 0, il=boundaryParticles.length; i < il; i++){
+    // this could probably be optimized out
+    if (!boundaryParticles[i]) continue;
+
+//      greenDots[i].visible = true;
+//      greenDots[i].position.copy(boundaryParticles[i].position);
+
+    boundaryParticles[i].fixPosition();
+  }
+
+
+  // can we do anything to enhance the visuals - with a good lighting, material, etc?
+  for ( i = 0, il = particles.length; i < il; i ++ ) {
+    this.geometry.vertices[ i ].copy( particles[ i ].position );
+  }
+
+  this.geometry.computeFaceNormals();
+  this.geometry.computeVertexNormals();
+
+  this.geometry.normalsNeedUpdate = true;
+  this.geometry.verticesNeedUpdate = true;
 
   return this;
 };

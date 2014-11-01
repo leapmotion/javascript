@@ -46,10 +46,11 @@
 
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
     <script src="//js.leapmotion.com/leap-0.6.3.min.js"></script>
-    <script src="js/leap-plugins-0.1.9pre.js"></script>
+    <script src="js/leap-plugins-0.1.9.js"></script>
     <script src="js/leap.pinchEvent.js"></script>
 		<script src="js/Stats.js"></script>
 
+		<script src="js/Particle.js"></script>
 		<script src="js/Cloth.js"></script>
 
 		<script type="x-shader/x-fragment" id="fragmentShaderDepth">
@@ -149,20 +150,20 @@
 				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
 				camera.position.x = 100;
 				camera.position.y = 200;
-				camera.position.z = 900;
+				camera.position.z = 600;
 				scene.add( camera );
 
         for (var i = 0; i < colliders.length; i++){
           scene.add(colliders[i]);
         }
 
-        for (var i = 0; i < dots.length; i++){
-          scene.add(dots[i]);
-        }
-
-        for (var i = 0; i < greenDots.length; i++){
-          scene.add(greenDots[i]);
-        }
+//        for (var i = 0; i < dots.length; i++){
+//          scene.add(dots[i]);
+//        }
+//
+//        for (var i = 0; i < greenDots.length; i++){
+//          scene.add(greenDots[i]);
+//        }
 
 				// lights
 
@@ -195,8 +196,8 @@
 
 //        cloth = new Cloth(100, 100, 2.5);
         var width = 50;
-//        cloth = new Cloth(width, width , 5); // todo - support rectangles
-        cloth = new Cloth(10, 10);
+        cloth = new Cloth(width, width , 5); // todo - support rectangles
+//        cloth = new Cloth(10, 10);
 
 				// cloth material
 
@@ -285,5 +286,20 @@
 			}
 
 		</script>
+    <!--
+    todo list:
+     - pill colliders
+     - handle hand disappearing while deforming mesh
+     - fix non-optimized call to simulate
+     - fix too much gc for simulate
+     - multiple finger tip zones.
+     - asthetics
+     - try proper simulation clock
+     - clean out or fix fourth dimension
+     - compute normals for only affected vertices (!)
+    -->
+
 	</body>
 </html>
+
+
