@@ -13,7 +13,7 @@
 // Certain things could be stored to attempt to reduce GC
 // such as `diff`
 
-var DAMPING = 0.03;
+var DAMPING = 0.06;
 var DRAG = 1 - DAMPING;
 
 var colliders = [];
@@ -167,7 +167,6 @@ Cloth.prototype.pinAt = function(u,v){
 // the position offset is spread between two nodes
 Cloth.prototype.satisfyConstraint = function(p1, p2) {
   this.diff4.subVectors(p2.position,p1.position);
-//  console.assert(!isNaN(this.diff4.x));
 
 // note: length here could be replaced:
 // In fact, using only one iteration and approximating the square root removes the stiffness that

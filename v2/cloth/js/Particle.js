@@ -24,8 +24,16 @@ Particle.prototype.addForce = function(force) {
 // Performs verlet integration
 // instantaneous velocity times drag plus position plus acceleration times time
 Particle.prototype.calcPosition = function() {     // why is this squared? And in seconds ?
+
 	var newPos = this.tmpPos.subVectors(this.position, this.lastPosition);
 	newPos.multiplyScalar(DRAG).add(this.position);
+
+  // this restoring force is pretty important, as otherwise edges will get way out of sync,
+  // and then snap back at infinite speed when becoming once-more fixed.
+  // 1/2*k*x^2
+  var force = this.tmpForce.subVectors(this.originalPosition, this.position);
+
+  newPos.add( force.normalize().multiplyScalar(force.lengthSq() * DAMPING)  );
 
 	this.tmpPos = this.lastPosition;  // as this is a reference, we set it to something which is ok to mutate later.
 	this.lastPosition = this.position;
