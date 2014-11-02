@@ -49,6 +49,7 @@
     <script src="js/leap-plugins-0.1.9.js"></script>
     <script src="js/leap.pinchEvent.js"></script>
 		<script src="js/Stats.js"></script>
+		<script src="js/OrbitControls.js"></script>
 
 		<script src="js/Particle.js"></script>
 		<script src="js/Collider.js"></script>
@@ -272,6 +273,7 @@
 				renderer.setClearColor( scene.fog.color );
 
         document.body.appendChild( renderer.domElement );
+        controls = new THREE.OrbitControls( camera, renderer.domElement );
 
 				renderer.gammaInput = true;
 				renderer.gammaOutput = true;
