@@ -3,13 +3,9 @@ function Particle(position) {
 	this.position         = position;
 	this.lastPosition     = position.clone();
 	this.originalPosition = position.clone();
-  // we always add to `w`, as it's the length of a position delta
-//	this.a = new THREE.Vector4(0, 0, 0, -1000); // acceleration  -- what constant should we choose?
-//	this.a = new THREE.Vector4(0, 0, 0, -981 * 1.4); // amount similar to gravity in original.
-	this.a = new THREE.Vector4(0, 0, 0, 0); // amount similar to gravity in original.
-//	this.a = new THREE.Vector4(0, 0, 0, -981 * 0.014); // amount similar to gravity in original.
-	this.tmpPos = new THREE.Vector4(); // allows pointer switching
-	this.tmpForce = new THREE.Vector4();
+	this.a = new THREE.Vector3(0, 0, 0); // amount similar to gravity in original.
+	this.tmpPos = new THREE.Vector3(); // allows pointer switching
+	this.tmpForce = new THREE.Vector3();
 	this.diff3  = new THREE.Vector3();
 }
 
@@ -51,9 +47,7 @@ Particle.prototype.fixPosition = function(){
   this.position.set(
     this.originalPosition.x,
     this.originalPosition.y,
-    this.originalPosition.z,
-//    this.position.w + this.diff3.length() // don't do this.
-    0
+    this.originalPosition.z
   );
 
   this.lastPosition.copy(this.position);

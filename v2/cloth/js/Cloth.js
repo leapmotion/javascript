@@ -67,7 +67,6 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
 
   // Temporary usage
   this.diff3 = new THREE.Vector3;
-  this.diff4 = new THREE.Vector4;
 
   this.addParticles();
   this.addConstraints();
@@ -148,10 +147,9 @@ Cloth.prototype.particleAt = function(u,v){
 // sets the vertex position for the parametric geometry, on initialization. Gets updated on render.
 Cloth.prototype.particlePosition = function(u, v) {
   // for now, only positive numbers, easier to track.
-  return new THREE.Vector4(
+  return new THREE.Vector3(
     (u - 0.5) * this.width, // was (u - 0.5)
     (v - 0.5) * this.height, // was (v - 0.5)
-    0,
     0
   );
 };
@@ -166,7 +164,7 @@ Cloth.prototype.pinAt = function(u,v){
 // conservation of energy
 // the position offset is spread between two nodes
 Cloth.prototype.satisfyConstraint = function(p1, p2) {
-  this.diff4.subVectors(p2.position,p1.position);
+  this.diff3.subVectors(p2.position,p1.position);
 
 // note: length here could be replaced:
 // In fact, using only one iteration and approximating the square root removes the stiffness that
@@ -177,10 +175,10 @@ Cloth.prototype.satisfyConstraint = function(p1, p2) {
 //  delta*=restlength*restlength/(delta*delta+restlength*restlength)-0.5;
 //  x1 += delta;
 //  x2 -= delta;
-	var currentDist = this.diff4.length();
+	var currentDist = this.diff3.length();
 	if (currentDist==0) return; // prevents division by 0
 
-	var correction = this.diff4.multiplyScalar(1 - this.particleSpacing/currentDist);  // vectors
+	var correction = this.diff3.multiplyScalar(1 - this.particleSpacing/currentDist);  // vectors
 	var correctionHalf = correction.multiplyScalar(0.5);
 	p1.position.add(correctionHalf);
 	p2.position.sub(correctionHalf);
