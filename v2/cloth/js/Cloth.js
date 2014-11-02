@@ -21,15 +21,14 @@ var colliders = [];
 
 var redDots = [];
 var greenDots = [];
-var numDots = 5000;
-var dotGeo = new THREE.SphereGeometry( 1, 10, 10 );
+var dotGeo = new THREE.SphereGeometry( 1, 4, 4 );
 var dotMaterial = new THREE.MeshPhongMaterial( { color: 0xff0000 } );
 
-visualize = false;
+var visualize = true;
 if (visualize){
 
   var mesh;
-  for (var i = 0; i < numDots; i++){
+  for (var i = 0; i < 2500; i++){
     mesh = new THREE.Mesh( dotGeo, dotMaterial );
     redDots.push( mesh )
   }
@@ -44,10 +43,11 @@ if (visualize){
 
 
 // Takes in number of particles wide by height
+// in a rather unfortunate naming convention, this.w is in index-space, and this.width is in scene space.
 function Cloth(xParticleCount, yParticleCount, springLen) {
   this.w = xParticleCount || 10;  // number
   this.h = yParticleCount || 10;
-  this.springLength = springLen || 25;
+  this.particleSpacing = springLen || 25;
 
   this.geometry = new THREE.ParametricGeometry(
     this.particlePosition, // this sets the initial position, and is effectively unused
@@ -58,8 +58,8 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
   this.geometry.dynamic = true;
   this.geometry.computeFaceNormals(); // why ?
 
-	this.width = this.springLength * this.w;
-	this.height = this.springLength * this.h;
+	this.width = this.particleSpacing * this.w;
+	this.height = this.particleSpacing * this.h;
 
   this.particles  = [];
   this.pinnedParticles = [];
@@ -181,7 +181,7 @@ Cloth.prototype.satisfyConstraint = function(p1, p2) {
 	var currentDist = this.diff4.length();
 	if (currentDist==0) return; // prevents division by 0
 
-	var correction = this.diff4.multiplyScalar(1 - this.springLength/currentDist);  // vectors
+	var correction = this.diff4.multiplyScalar(1 - this.particleSpacing/currentDist);  // vectors
 	var correctionHalf = correction.multiplyScalar(0.5);
 	p1.position.add(correctionHalf);
 	p2.position.sub(correctionHalf);
@@ -189,8 +189,9 @@ Cloth.prototype.satisfyConstraint = function(p1, p2) {
 
 
 // this should be made in to a Collider class
-Cloth.prototype.satisfyCollider = function(collider, radius, particle){
+Cloth.prototype.satisfyCollider = function(collider, particle){
   var position = particle.position;
+  var radius = collider.radius;
 
   // this vec3 takes only the 3d components of position.
   this.diff3.subVectors(position, collider.position);
@@ -219,15 +220,13 @@ Cloth.prototype.satisfyCollider = function(collider, radius, particle){
 // if corner intersecting, solve for line segments and areas independently
 // must be a recursive function?
 //
-
-Cloth.prototype.calcNearbyParticlesFor = function(collider){
+// todo this offset doesn't work in planes not normal to z :-/
+Cloth.prototype.calcNearbyParticlesFor = function(rect){
   var particles = [];
   var boundaryParticles = []; // these ones get pinned.
-  var row, leftBound, rightBound, i;
+  var row, i;
 
-  var offset = collider.position.clone().sub(this.mesh.getWorldPosition());
-  var radius = collider.radius * 16;
-  var diameter;
+  var rectPos    = rect.position.clone().sub(this.mesh.getWorldPosition());  // make relative to this mesh space.
 
   // Discard Z > collider radius * 8 (8 is a bit of a magic number here.)
   // Margin is taken against the origin position of the particle.
@@ -235,43 +234,40 @@ Cloth.prototype.calcNearbyParticlesFor = function(collider){
   // assumes that the mesh is a flat plane, and not curved to the view
   // that would require higher or dynamic z-margin. (Might not be too bad to implement).
   // this should already do a lot when the hand is not near the mesh.
-  if ( Math.abs(offset.z) > radius * 8 )            return;
-  if ( Math.abs(offset.x) > this.width / 2 * 1.3 )  return;
-  if ( Math.abs(offset.y) > this.height / 2 * 1.3 ) return;
+  if ( Math.abs(rectPos.z) > rect.depth )            return;
+  if ( Math.abs(rectPos.x) > this.width / 2 * 1.3 )  return; // todo - dial back these 1.3s
+  if ( Math.abs(rectPos.y) > this.height / 2 * 1.3 ) return;
+
 
   // convert from meters to index-space.
   // this needs to be reflected as from-center
-  offset.divideScalar(this.springLength);
-  offset.x = ~~offset.x; // Math.floor
-  offset.y = ~~offset.y;
+  rectPos.divideScalar(this.particleSpacing);
+  rectPos.x = ~~rectPos.x; // Math.floor - todo - try round and see if it feels better/more centered, especially on lower particle-density systems.
+  rectPos.y = ~~rectPos.y;
 
-  radius /= (this.springLength * 2); // double for good measure
-  radius = Math.ceil(radius);
 
   // offset is from center, but we're indexed from bottom left
   // this could be sloppy/off by one? Better do the addition before the unit change?
-  // note that this is disabled for now, as the vertices are not currently centered on the mesh position, but their BL corner is.
-  offset.x += ~~(this.w / 2);
-  offset.y += ~~(this.h / 2);
-
-//  row = (offset.y - radius);
-  leftBound  = offset.x - radius;
-  rightBound = offset.x + radius;
-
-  diameter = radius * 2;
+  rectPos.x += ~~(this.w / 2);
+  rectPos.y += ~~(this.h / 2);
 
 
-  // call this for every row
-  // start with center for now
-  // forms a square
+  var halfWidth  = Math.ceil( rect.halfWidth  / this.particleSpacing ); // avoid 0
+  var halfHeight = Math.ceil( rect.halfHeight / this.particleSpacing );
+  var width      = halfWidth  * 2;
+  var height     = halfHeight * 2;
+
+  var leftBound  = rectPos.x - halfWidth;
+  var rightBound = rectPos.x + halfWidth;
+
 
   // check for and prevent wraparound
-  // possible optimization would be try and no longer necessitate these conditions.
+  // possible optimization would be try and no longer necessitate these conditions. todo - by hardcoding constraints
   if (rightBound > this.w) {
     rightBound = this.w;
   }else{
-    for (i = 0; i <= diameter; i++) {
-      row = (offset.y - radius + i) * (this.w + 1);
+    for (i = 0; i <= height; i++) {
+      row = (rectPos.y - halfHeight + i) * (this.w + 1);
       // Skip the three conditions in the other loop - We don't want boundaries moved in artificially
       boundaryParticles.push(this.particles[rightBound + row]);
     }
@@ -280,24 +276,32 @@ Cloth.prototype.calcNearbyParticlesFor = function(collider){
   if (leftBound < 0) {
     leftBound = 0
   } else {
-    for (i = 0; i <= diameter; i++) {
-      row = (offset.y - radius + i) * (this.w + 1);
+    for (i = 0; i <= height; i++) {
+      row = (rectPos.y - halfHeight + i) * (this.w + 1);
 
       boundaryParticles.push(this.particles[leftBound + row]);
     }
   }
 
   // bottom condition:
-  if (offset.y - radius >= 0){
-    row = (offset.y - radius)  * (this.w + 1);
+  if (rectPos.y - halfHeight >= 0){
+    row = (rectPos.y - halfHeight)  * (this.w + 1);
+    boundaryParticles = boundaryParticles.concat(
+      this.particles.slice(leftBound + row, rightBound + row + 1) // second arg is exclusive
+    );
+  }
+
+  // top condition:
+  if (rectPos.y + halfHeight <= this.h){
+    row = (rectPos.y + halfHeight) * (this.w + 1);
     boundaryParticles = boundaryParticles.concat(
       this.particles.slice(leftBound + row, rightBound + row + 1) // second arg is exclusive
     );
   }
 
   // possible opt: looks like boundary particles are a subset of nearbyParticles, which == wasted work?
-  for (i = 0; i <= diameter; i++){
-    row = (offset.y - radius + i) * (this.w + 1);
+  for (i = 0; i <= height; i++){
+    row = (rectPos.y - halfHeight + i) * (this.w + 1);
     if (row < 0) continue;
 
     particles.push(
@@ -306,18 +310,9 @@ Cloth.prototype.calcNearbyParticlesFor = function(collider){
 
   }
 
-  // bottom condition:
-  if (offset.y + radius <= this.h){
-    row = (offset.y + radius) * (this.w + 1);
-    boundaryParticles = boundaryParticles.concat(
-      this.particles.slice(leftBound + row, rightBound + row + 1) // second arg is exclusive
-    );
-  }
+  rect.nearbyParticles = particles;
+  rect.boundaryParticles = boundaryParticles;
 
-  collider.nearbyParticles = particles;
-  collider.boundaryParticles = boundaryParticles;
-
-  return;
 };
 
 arrayDiff = function(a1, a2) {
@@ -326,61 +321,83 @@ arrayDiff = function(a1, a2) {
 
 // call this every animation frame
 // should be broken in to smaller methods
+// todo -  Use Shader -- not a good idea until happy with the actual algorithms going on.
+// note that currently, if finger movement is > fps, some particles may get frozen in poor position :-/ flaky
 Cloth.prototype.simulate = function() {
 
   var i, il, j, jl, k, kl,
     particle, particles = this.particles,
-    collider, radius,
-    nearbyParticles, boundaryParticles, tuple,// affectedParticles = [], noLongerAffectedParticles,
-    pRightwards, pDownwards;
+    collider, rect,
+    nearbyParticles, boundaryParticles,// affectedParticles = [], noLongerAffectedParticles,
+    pRightwards, pDownwards, rects = [];
 
-
-
-  // compares every particle to the ball position
-  // might be better off with a k-d tree!
-  // see http://threejs.org/examples/#webgl_nearestneighbour
-  // two optimizations, and compare:
-  // 1: Use k-d tree -- not necessary as we have natural indexing.
-  // 2: Use Shader -- not a good idea until happy with the actual algorithms going on. They should not be an excuse for wasted cycles.
 
   // reset dots:
-//    for (i = 0; i < dots.length; i++){
-//      dots[i].visible = false;
-//    }
-//
-//    // reset dots:
-//    for (i = 0; i < greenDots.length; i++){
-//      greenDots[i].visible = false;
-//    }
+  if (visualize){
+    for (i = 0; i < redDots.length; i++){
+      redDots[i].visible = false;
+    }
+
+    // reset dots:
+    for (i = 0; i < greenDots.length; i++){
+      greenDots[i].visible = false;
+    }
+  }
+
+  // it turns out to be quite difficult to track intersections of rectangles
+  // for now we just combine them in to one larger rectangle...
+  // not as good, but should be fine
+
+  // for each collider
+  // check collisions against intersecting rectangles
+  // if yes, take both out, add a new.
+  var rectCollision = false;
+  for (i = 0; i < colliders.length; i++){
+    collider = colliders[i];
+
+    for (j = 0; j < rects.length; j++){
+
+      if ( collider.rect.intersects(rects[j]) ) {
+        rectCollision = true;
+
+        rects.push(
+          collider.rect.combineWith(
+            rects.splice(j,1)[0]
+          )
+        );
+      }
+
+    }
+
+    if (!rectCollision){
+      rects.push(
+        collider.rect
+      );
+    }
+
+  }
 
   // for every collider, run mesh calculations on effected nodes
-  for ( i = 0; i < colliders.length; i++){
+  for ( i = 0; i < rects.length; i++){
 
-    collider = colliders[i];
-    radius = collider.radius;
+    rect = rects[i];
 
     // this is a good optimization for a large number of colliders! (tested w/ 50 to 500).
     // returns a 2d array of rows, which we use later to know where to apply constraints.
     // shit - now we have to prevent loop-over
-    this.calcNearbyParticlesFor(collider);
-    nearbyParticles   = collider.nearbyParticles;
-    boundaryParticles = collider.boundaryParticles;
-
-    // store all particles in flat array
-//    if (nearbyParticles.length > 0){
-//      affectedParticles = affectedParticles.concat(
-//        nearbyParticles.reduce(function(a,b){ return a.concat(b) })
-//      );
-//    }
+    this.calcNearbyParticlesFor(rect);
+    nearbyParticles   = rect.nearbyParticles;
+    boundaryParticles = rect.boundaryParticles;
 
     for (j=0, jl = nearbyParticles.length; j < jl; j++) {
 
       for (k=0, kl = nearbyParticles[j].length; k < kl; k++) {
         particle = nearbyParticles[j][k];
 
-//          dots[(j * jl) + k].visible = true;
-//          dots[(j * jl) + k].position.copy(particle.position);
-
+        if (visualize){
+          redDots[(j * jl) + k].visible = true;
+          redDots[(j * jl) + k].position.copy(particle.position);
+        }
 
         particle.calcPosition();
 
@@ -395,15 +412,13 @@ Cloth.prototype.simulate = function() {
           if (pDownwards) this.satisfyConstraint(particle, pDownwards);
         }
 
-        this.satisfyCollider(collider, radius, particle);
+        for (var l = 0; l < rect.colliders.length; l++){
+          this.satisfyCollider(rect.colliders[l], particle);
+        }
 
       }
 
     }
-
-    // note - this could be made faster by taking advantage of the intrinsic ordering of the particles in the array
-  //    noLongerAffectedParticles = arrayDiff(this.lastAffectedParticles, affectedParticles);
-  //    this.lastAffectedParticles = affectedParticles;
 
     // note that right now, it is undefined what happens when a collider disappears when colliding with particles
     // they could instantly reset
@@ -413,8 +428,10 @@ Cloth.prototype.simulate = function() {
       // this could probably be optimized out
       if (!boundaryParticles[i]) continue;
 
-  //      greenDots[i].visible = true;
-  //      greenDots[i].position.copy(boundaryParticles[i].position);
+      if (visualize){
+        greenDots[i].visible = true;
+        greenDots[i].position.copy(boundaryParticles[i].position);
+      }
 
       boundaryParticles[i].fixPosition();
     }

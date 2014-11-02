@@ -134,23 +134,29 @@
         }
       }).on('handFound', function(hand){
 
-        var mesh = new THREE.Mesh(
-            new THREE.SphereGeometry( 4, 20, 20 ),
-            new THREE.MeshPhongMaterial( { color: 0xffffff } )
-        );
-        mesh.position.set(0,0,20);
-        colliders.push( new Collider( mesh ) )
+        for (var i = 0; i < 5; i++){
+          var mesh = new THREE.Mesh(
+              new THREE.SphereGeometry( 4, 20, 20 ),
+              new THREE.MeshPhongMaterial( { color: 0xffffff } )
+          );
+          mesh.position.set(0,0,20);
+          colliders.push( new Collider( mesh ) )
+        }
 
       }).on('handLost', function(hand){
+        var rect;
 
-        // for now 'cause there's only one.
-        var collider = colliders.pop();
-        var particles = collider.nearbyParticles;
+        colliders = [];
 
-        // it would be better to run the simulation out a little bit, but that's for later.
-        collider.forEachNearbyParticle(function(particle){
-          particle.fixPosition();
-        });
+//        while ( rect = rects.pop() ){
+//
+//          var particles = rect.nearbyParticles;
+//
+//          // it would be better to run the simulation out a little bit, but that's for later.
+//          rect.forEachNearbyParticle(function(particle){
+//            particle.fixPosition();
+//          });
+//        }
 
       });
 
@@ -172,17 +178,20 @@
 				camera.position.z = 600;
 				scene.add( camera );
 
-//        for (var i = 0; i < colliders.length; i++){
-//          scene.add(colliders[i]);
-//        }
+        if (visualize){
+          for (var i = 0; i < colliders.length; i++){
+            scene.add(colliders[i]);
+          }
 
-//        for (var i = 0; i < dots.length; i++){
-//          scene.add(dots[i]);
-//        }
-//
-//        for (var i = 0; i < greenDots.length; i++){
-//          scene.add(greenDots[i]);
-//        }
+          for (var i = 0; i < redDots.length; i++){
+            scene.add(redDots[i]);
+          }
+
+          for (var i = 0; i < greenDots.length; i++){
+            scene.add(greenDots[i]);
+          }
+        }
+
 
 				// lights
 
@@ -312,6 +321,11 @@
      - try proper simulation clock
      - clean out or fix fourth dimension
      - compute normals for only affected vertices (!)
+     - hand disappears after disconnect controller and reconnect (?)
+     - make sure this can apply to rectangles
+     - make sure finger tips don't punch through cloth
+     - check for bad harmonic oscillations
+     - Add Z-damping spring force
     -->
 
 	</body>
