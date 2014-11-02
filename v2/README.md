@@ -13,7 +13,9 @@ git clone git@github.com:leapmotion-examples/javascript
 cd javascript/v2/finger-labels
 ```
 
-####2. Open finger-labels/index.html in your favorite web browser. Similarly, you can use a basic [Node.js Web Server](https://www.npmjs.org/package/node-http-server) to serve your static file directory:
+####2. Serve code
+
+Open finger-labels/index.html in your favorite web browser. Similarly, you can use a basic [Node.js Web Server](https://www.npmjs.org/package/node-http-server) to serve your static file directory:
 ```bash
 sudo npm install http-server -g
 cd <clone_directory>/javascript/v2/finger-labels
