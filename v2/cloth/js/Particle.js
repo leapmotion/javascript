@@ -1,5 +1,5 @@
 
-function Particle(position, mass) {
+function Particle(position) {
 	this.position         = position;
 	this.lastPosition     = position.clone();
 	this.originalPosition = position.clone();
@@ -8,7 +8,6 @@ function Particle(position, mass) {
 //	this.a = new THREE.Vector4(0, 0, 0, -981 * 1.4); // amount similar to gravity in original.
 	this.a = new THREE.Vector4(0, 0, 0, 0); // amount similar to gravity in original.
 //	this.a = new THREE.Vector4(0, 0, 0, -981 * 0.014); // amount similar to gravity in original.
-	this.mass = mass; // constant and unused.
 	this.tmpPos = new THREE.Vector4(); // allows pointer switching
 	this.tmpForce = new THREE.Vector4();
 	this.diff3  = new THREE.Vector3();

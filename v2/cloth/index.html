@@ -51,6 +51,7 @@
 		<script src="js/Stats.js"></script>
 
 		<script src="js/Particle.js"></script>
+		<script src="js/Collider.js"></script>
 		<script src="js/Cloth.js"></script>
 
 		<script type="x-shader/x-fragment" id="fragmentShaderDepth">
@@ -128,11 +129,29 @@
       Leap.loopController.setBackground(true); // see https://github.com/leapmotion/leapjs/issues/190
 
       Leap.loopController.on('hand', function(hand){
-        if (hand.data('pinchEvent.pinching') || true){
-          for (var i = 0; i < colliders.length; i++){
-            colliders[i].position.fromArray( hand.fingers[(i + 1) % 5].tipPosition );
-          }
+        for (var i = 0; i < colliders.length; i++){
+          colliders[i].position.fromArray( hand.fingers[(i + 1) % 5].tipPosition );
         }
+      }).on('handFound', function(hand){
+
+        var mesh = new THREE.Mesh(
+            new THREE.SphereGeometry( 4, 20, 20 ),
+            new THREE.MeshPhongMaterial( { color: 0xffffff } )
+        );
+        mesh.position.set(0,0,20);
+        colliders.push( new Collider( mesh ) )
+
+      }).on('handLost', function(hand){
+
+        // for now 'cause there's only one.
+        var collider = colliders.pop();
+        var particles = collider.nearbyParticles;
+
+        // it would be better to run the simulation out a little bit, but that's for later.
+        collider.forEachNearbyParticle(function(particle){
+          particle.fixPosition();
+        });
+
       });
 
 			init();
@@ -153,9 +172,9 @@
 				camera.position.z = 600;
 				scene.add( camera );
 
-        for (var i = 0; i < colliders.length; i++){
-          scene.add(colliders[i]);
-        }
+//        for (var i = 0; i < colliders.length; i++){
+//          scene.add(colliders[i]);
+//        }
 
 //        for (var i = 0; i < dots.length; i++){
 //          scene.add(dots[i]);
@@ -262,17 +281,13 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 			}
 
-      var simulated = false;
-
 			function animate() {
 				requestAnimationFrame( animate );
 
         stats.begin();
 
-				if (!simulated) cloth.simulate( Date.now() );
+				cloth.simulate( );
 				render();
-
-//        simulated = true;
 
         stats.end();
 
