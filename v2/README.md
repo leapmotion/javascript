@@ -1,7 +1,7 @@
-<img src="https://di4564baj7skl.cloudfront.net/assets/leapjs/leapjs-logo-270-6bbee8a1836a10769c1ba84951450006.png"><img src="https://lm-assets.s3.amazonaws.com/screenshots/skeletal_beta_3.png">
+<img src="https://di4564baj7skl.cloudfront.net/assets/leapjs/leapjs-logo-270-6bbee8a1836a10769c1ba84951450006.png">
 =====
 
-<img src="https://di4564baj7skl.cloudfront.net/assets/mac-a3b33298ed46dbf8a36151ac0357dbef.png">
+<img src="https://di4564baj7skl.cloudfront.net/assets/mac.png">
 
 ##V2: Skeletal Beta
 The following repository contains Leap Motion SDK examples built with Javascript. Each project is built using V2 Core Services Skeletal Tracking code from [Leap Motion's Developer Portal](https://developer.leapmotion.com/downloads/skeletal-beta). For additional support with these examples and more, feel free to reach out to us via: [Leap Motion's Community Forums](https://community.leapmotion.com/category/beta)  
