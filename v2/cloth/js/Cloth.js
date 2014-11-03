@@ -45,6 +45,7 @@ if (visualize){
 // Takes in number of particles wide by height
 // in a rather unfortunate naming convention, this.w is in index-space, and this.width is in scene space.
 function Cloth(xParticleCount, yParticleCount, springLen) {
+  this.mesh = null; // this gets reverse-referenced later.
   this.w = xParticleCount || 10;  // number
   this.h = yParticleCount || 10;
   this.particleSpacing = springLen || 25;
@@ -58,7 +59,7 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
   this.geometry.dynamic = true;
   this.geometry.computeFaceNormals(); // why ?
 
-	this.width = this.particleSpacing * this.w;
+	this.width  = this.particleSpacing * this.w;
 	this.height = this.particleSpacing * this.h;
 
   this.particles  = [];
@@ -67,6 +68,13 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
 
   // Temporary usage
   this.diff3 = new THREE.Vector3;
+  this.rayCaster = new THREE.Raycaster;
+
+
+  // todo - for now, we assume this never changes -.-
+  // should base off of matrixWorld instead
+  // used to project particles.
+  this.worldNormal = new THREE.Vector3(0,0,1);
 
   this.addParticles();
   this.addConstraints();
@@ -176,7 +184,7 @@ Cloth.prototype.satisfyConstraint = function(p1, p2) {
 //  x1 += delta;
 //  x2 -= delta;
 	var currentDist = this.diff3.length();
-	if (currentDist==0) return; // prevents division by 0
+	if ( currentDist == 0 ) return; // prevents division by 0
 
 	var correction = this.diff3.multiplyScalar(1 - this.particleSpacing/currentDist);  // vectors
 	var correctionHalf = correction.multiplyScalar(0.5);
@@ -187,20 +195,35 @@ Cloth.prototype.satisfyConstraint = function(p1, p2) {
 
 // this should be made in to a Collider class
 Cloth.prototype.satisfyCollider = function(collider, particle){
-  var position = particle.position;
+  var particlePosition = particle.position;
   var radius = collider.radius;
 
-  // this vec3 takes only the 3d components of position.
-  this.diff3.subVectors(position, collider.position);
+  this.diff3.subVectors(particlePosition, collider.position);
 
+
+  // might not even need this.
   if (this.diff3.length() < radius) { // collided
-    this.diff3.normalize().multiplyScalar(radius);
-//    position.add(this.diff3);
-    position.x += this.diff3.x;
-    position.y += this.diff3.y;
-    position.z += this.diff3.z;
+
+    this.diff3.setLength(radius);
+    particlePosition.add(this.diff3);
+
   }
+
+  // Allows the collider to slide perfectly under the mesh.  Doesn't attempt to move the mesh, heh.
+  // todo - there's no need to raycast each and every particle. We can easily look up by index instead.
+  this.rayCaster.set(particle.originalPosition, this.worldNormal.clone().multiplyScalar( collider.physicalSide(this) * -1 ) );
+  collider.mesh.updateMatrixWorld(); // make sure ray caster gets the position. // seems strange that this is necessary, as it is a dynamic object.
+  var results = this.rayCaster.intersectObject(collider.mesh);
+  var result = results[results.length - 1];
+
+  if (result){
+
+    particlePosition.copy(particle.originalPosition).setZ(result.distance * collider.physicalSide(this) * -1  );
+
+  }
+
 };
+
 
 
 // takes the position of the collider
@@ -223,7 +246,8 @@ Cloth.prototype.calcNearbyParticlesFor = function(rect){
   var boundaryParticles = []; // these ones get pinned.
   var row, i;
 
-  var rectPos    = rect.position.clone().sub(this.mesh.getWorldPosition());  // make relative to this mesh space.
+  // looks like rectPos.z might need to be updated for multiple fingers..
+  var rectPos    = rect.position.clone().sub(this.mesh.getWorldPosition());  // todo - make relative to this mesh space.
 
   // Discard Z > collider radius * 8 (8 is a bit of a magic number here.)
   // Margin is taken against the origin position of the particle.
@@ -231,9 +255,21 @@ Cloth.prototype.calcNearbyParticlesFor = function(rect){
   // assumes that the mesh is a flat plane, and not curved to the view
   // that would require higher or dynamic z-margin. (Might not be too bad to implement).
   // this should already do a lot when the hand is not near the mesh.
-  if ( Math.abs(rectPos.z) > rect.depth )            return;
-  if ( Math.abs(rectPos.x) > this.width / 2 * 1.3 )  return; // todo - dial back these 1.3s
-  if ( Math.abs(rectPos.y) > this.height / 2 * 1.3 ) return;
+  if ( Math.abs(rectPos.z) > rect.depth ||
+    Math.abs(rectPos.x) > this.width / 2 * 1.3 || // todo - dial back these 1.3s
+    Math.abs(rectPos.y) > this.height / 2 * 1.3) {
+
+    rect.reset(this);
+
+    return
+
+  } else {
+
+    for (i = 0; i < rect.colliders.length; i++){
+      rect.colliders[i].initRelation(this, rectPos.z);
+    }
+
+  }
 
 
   // convert from meters to index-space.
@@ -357,11 +393,17 @@ Cloth.prototype.simulate = function() {
       if ( collider.rect.intersects(rects[j]) ) {
         rectCollision = true;
 
-        rects.push(
-          collider.rect.combineWith(
-            rects.splice(j,1)[0]
-          )
+        collider.megaRect = collider.rect.combineWith(
+          rects.splice(j,1)[0]
         );
+
+        rects.push(
+          collider.megaRect
+        );
+      } else {
+
+        collider.megaRect = null;
+
       }
 
     }

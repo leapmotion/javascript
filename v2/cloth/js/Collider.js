@@ -1,9 +1,10 @@
 COLLIDER_RECT_SCALE_FACTOR = 8; // how many times larger is the rect than the collider
 
 function Collider(mesh) {
-  this.mesh = mesh;
+  this.mesh     = mesh;
   this.radius   = mesh.geometry.parameters.radius;
   this.position = mesh.position;
+  this.clothRelations = {}; // when pushing through a mesh, this tracks which direction the collider came from
 
   this.rect = new Rect(
     this.position,
@@ -12,7 +13,32 @@ function Collider(mesh) {
     [this]
   );
 
+  // hold a reference to the combination-rect of multiple colliders, so that it can be reset on hand lost.
+  this.megaRect = null;
+
 }
+
+// Tracks which side of a cloth a collider is physically on
+// (so that it knows whether to deform to that point, regardless of speed or interval)
+// takes in a cloth and the relative distance of this collider from that cloth.
+Collider.prototype.initRelation = function(cloth, zOffset){
+  if ( !isNaN(this.clothRelations[cloth.mesh.id]) ) return;
+
+  this.clothRelations[cloth.mesh.id] = Math.sign(zOffset);
+};
+
+Collider.prototype.resetRelation = function(cloth) {
+
+  delete this.clothRelations[cloth.mesh.id];
+
+};
+
+// Returns 1 or -1
+Collider.prototype.physicalSide = function(cloth){
+
+  return this.clothRelations[cloth.mesh.id];
+
+};
 
 
 
@@ -76,6 +102,26 @@ Rect.prototype.forEachNearbyParticle = function(callback){
       callback(this.nearbyParticles[i][j]);
 
     }
+  }
+
+};
+
+// kind of a cheap method.  Should be gutted and replaced by something which animates the particles back in to place
+// rather than snapping them there and ceasing simulation
+Rect.prototype.reset = function(cloth){
+  if (this.nearbyParticles.length === 0) return;
+
+  this.forEachNearbyParticle(function(particle){
+
+    particle.fixPosition()
+
+  });
+
+  this.nearbyParticles = [];
+  this.boundaryParticles = [];
+
+  for (var i = 0; i < this.colliders.length; i++){
+    this.colliders[i].resetRelation(cloth);
   }
 
 };
