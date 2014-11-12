@@ -46,6 +46,7 @@ if (visualize){
 // in a rather unfortunate naming convention, this.w is in index-space, and this.width is in scene space.
 function Cloth(xParticleCount, yParticleCount, springLen) {
   this.mesh = null; // this gets reverse-referenced later.
+
   this.w = xParticleCount || 10;  // number
   this.h = yParticleCount || 10;
   this.particleSpacing = springLen || 25;
@@ -55,6 +56,7 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
     this.w,
     this.h
   );
+//  this.mapVerticesToFaces();
 
   this.geometry.dynamic = true;
   this.geometry.computeFaceNormals(); // why ?
@@ -80,6 +82,23 @@ function Cloth(xParticleCount, yParticleCount, springLen) {
   this.addConstraints();
 
 }
+//
+//Cloth.prototype.mapVerticesToFaces = function(){
+//  // mapping of vertex ID: faces
+//  var face;
+//  this.facesByVertexId = new Array(this.vertices.length);
+//
+//  for (var i = 0; i < this.vertices.length; i++){
+//    this.facesByVertexId[i] = [];
+//  }
+//
+//  for (i =0; i < this.facesByVertexId.length; i++){
+//    face = this.facesByVertexId[i];
+//
+//    this.facesByVertexId[face.a].push(face);
+//
+//  }
+//};
 
 
 Cloth.prototype.addParticles = function(){
