@@ -48,7 +48,8 @@
   .use('boneHand', {
     targetEl: document.body
   })
-  .use('pinchEvent');
+  .use('pinchEvent')
+  .use('playback', {recording: 'assets/throw-47fps.json.lz', timeBetweenLoops: 3000});
 
   Leap.loopController.loopWhileDisconnected = true;
 
@@ -128,6 +129,8 @@
   });
 
 
+
+  Leap.loopController.on('frameEnd', function(f){});
 
   Leap.loopController.on('hand', function(hand){
 
