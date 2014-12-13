@@ -5,7 +5,7 @@
   <script src="//js.leapmotion.com/leap-0.6.4.js"></script>
   <script src="//js.leapmotion.com/leap-plugins-0.1.10.js"></script>
   <script src="lib/leap.bone-hand.js"></script>
-  <script src="lib/leap-widgets-0.1.0.js"></script>
+  <script src="http://js.leapmotion.com/leap-widgets-0.1.0.js"></script>
   <script src="lib/OrbitControls.js"></script>
 
   <style>
@@ -29,7 +29,7 @@
 
   var scene = new THREE.Scene();
   var renderer = new THREE.WebGLRenderer();
-  document.body.appendChild(renderer.domElement)
+  document.body.appendChild(renderer.domElement);
   var camera = new THREE.PerspectiveCamera(45, width / height, 1, 10000);
 
   camera.position.set(-1018 * 0.9, 729 * 0.9, 613 * 0.9);
@@ -69,10 +69,11 @@
   plane.position.set(0,-10,-150);
   plane.receiveShadow = true;
 
+
   camera.lookAt( plane.position );
-
-
   scene.add(plane);
+
+
 
   var box = new THREE.Mesh(
     new THREE.BoxGeometry(60,60,30), // mm
@@ -102,12 +103,6 @@
     });
 
   new InteractablePlane(collider, Leap.loopController);
-
-  var meshes = Leap.loopController.plugins.boneHand.HandMesh.unusedHandMeshes;
-
-//  for (var i = 0; i < meshes.length; i++){
-//    meshes[i]
-//  }
 
 </script>
 
