@@ -1,4 +1,4 @@
-<img src="https://di4564baj7skl.cloudfront.net/assets/leapjs/leapjs-logo.png">
+<img src="https://di4564baj7skl.cloudfront.net/assets/leapjs/leapjs-logo-270-0cfcbb5fbc292c005453c6cb976a992b.png">
 =====
 
 The following repository contains Leap Motion SDK examples built with Javascript. Each project is built using Core Services Tracking code from [Leap Motion's Developer Portal](https://developer.leapmotion.com/downloads). For additional support with these examples and more, feel free to reach out to us via: [Leap Motion's Community Forums](https://community.leapmotion.com)  
