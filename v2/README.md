@@ -4,7 +4,7 @@
 <img src="https://di4564baj7skl.cloudfront.net/assets/mac.png">
 
 ##V2: Skeletal 
-The following repository contains Leap Motion SDK examples built with Javascript. Each project is built using V2 Core Services Skeletal Tracking code from [Leap Motion's Developer Portal](https://developer.leapmotion.com/downloads/skeletal-beta). For additional support with these examples and more, feel free to reach out to us via: [Leap Motion's Community Forums](https://community.leapmotion.com/)  
+The following repository contains Leap Motion SDK examples built with Javascript. Each project is built using V2 Core Services Skeletal Tracking code from [Leap Motion's Developer Portal](https://developer.leapmotion.com/). For additional support with these examples and more, feel free to reach out to us via: [Leap Motion's Community Forums](https://community.leapmotion.com/)  
 
 ##Getting Started
 ####1. Clone the GitHub repository and choose a project (i.e. finger-labels):
@@ -36,7 +36,7 @@ http-server
 ##Licensing Details
 The MIT License (MIT)
 
-Copyright (c) 2014 Leap Motion, Inc
+Copyright (c) 2015 Leap Motion, Inc
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
