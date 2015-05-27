@@ -1,4 +1,4 @@
-<img src="https://di4564baj7skl.cloudfront.net/assets/leapjs/leapjs-logo-270-6bbee8a1836a10769c1ba84951450006.png">
+<img src="https://di4564baj7skl.cloudfront.net/assets/leapjs/leapjs-logo-270-0cfcbb5fbc292c005453c6cb976a992b.png">
 =====
 
 <img src="https://di4564baj7skl.cloudfront.net/assets/mac.png">
