@@ -16,7 +16,7 @@ The following repository contains Leap Motion SDK examples built with Javascript
 ##License Details
 The MIT License (MIT)
 
-Copyright (c) 2014 Leap Motion, Inc
+Copyright (c) 2015 Leap Motion, Inc
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
