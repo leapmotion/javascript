@@ -3,10 +3,6 @@
 
 The following repository contains Leap Motion SDK examples built with Javascript. Each project is built using Core Services Tracking code from [Leap Motion's Developer Portal](https://developer.leapmotion.com/downloads). For additional support with these examples and more, feel free to reach out to us via: [Leap Motion's Community Forums](https://community.leapmotion.com)  
 
-##Versions
-* [V1: Consumer Release](https://developer.leapmotion.com/downloads) (see [/v1 directory](https://github.com/leapmotion-examples/javascript/tree/master/v1))
-* [V2: Skeletal Beta](https://developer.leapmotion.com/downloads/skeletal-beta) (see [/v2 directory](https://github.com/leapmotion-examples/javascript/tree/master/v2))
-
 ##Resources
 * Each Javascript project example folder has a short README
 * [Leap Motion API Docs (Javascript)](https://developer.leapmotion.com/documentation/javascript/index.html)
