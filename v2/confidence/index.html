@@ -24,9 +24,10 @@ THE SOFTWARE.
 <html>
   <head>
     <title>Hand Confidence Demo</title>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r67/three.js"></script>
-    <script src="//js.leapmotion.com/leap-0.6.2.min.js"></script>
-    <script src="//js.leapmotion.com/leap-plugins-0.1.6.1.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
+    <script src="//js.leapmotion.com/leap-0.6.4.js"></script>
+    <script src="//js.leapmotion.com/leap-plugins-0.1.10.js"></script>
+
     <script src="//js.leapmotion.com/leap.rigged-hand-0.1.4.min.js"></script>
 
     <style class="codepen">
@@ -74,7 +75,7 @@ THE SOFTWARE.
     };
 
     // Set up the controller:
-    Leap.loop({useAllPlugins: false}, {
+    Leap.loop({
       hand: function(hand) {
         output.innerHTML = hand.confidence.toPrecision(2) + " <small>" + capitaliseFirstLetter(hand.type) + " hand </small>";
         progress.style.width = hand.confidence * 100 + '%';

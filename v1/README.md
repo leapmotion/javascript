@@ -1,12 +1,9 @@
-<img src="https://di4564baj7skl.cloudfront.net/assets/leapjs/leapjs-logo-270-6bbee8a1836a10769c1ba84951450006.png">
+<img src="https://di4564baj7skl.cloudfront.net/assets/leapjs/leapjs-logo-270-0cfcbb5fbc292c005453c6cb976a992b.png">
 =====
 
 <img src="https://developer.leapmotion.com/documentation/images/Leap_Finger_Model.png">
 
-##V1: Consumer Release
 The following repository contains Leap Motion SDK examples built with Javascript. Each project is built using V1 Core Services Tracking code from [Leap Motion's Developer Portal](https://developer.leapmotion.com/downloads). For additional support with these examples and more, feel free to reach out to us via: [Leap Motion's Community Forums](https://community.leapmotion.com/)  
-
-**NOTE**: The V1 Core Services tracking code is currently released to production for all consumers. 
 
 ##V1: LeapJS Production API
 ```javascript

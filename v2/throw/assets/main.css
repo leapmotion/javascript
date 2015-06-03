@@ -1,0 +1,23 @@
+h1 {
+  font-size: 3em;
+}
+h2 {
+  padding: 0 1em;
+}
+h2.subhead {
+  margin-top: -1em;
+  margin-left: -1em;
+}
+body {
+  padding: 1.5em;
+  font-family: Monospace;
+  font-size: 2em;
+}
+li{
+  line-height: 1.5em;
+}
+canvas.leap-boneHand {
+  top: 0;
+  left: 0;
+  position: absolute;
+}
