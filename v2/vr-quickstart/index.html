@@ -12,14 +12,14 @@
 
 		</style>
 
-    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
+    <!--<script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.js"></script> todo-->
+    <script src="js/three.js"></script>
     <!-- These two scripts are brought in from the THREE.js repo -->
-    <!-- VREffect has been slightly customized, see https://github.com/mrdoob/three.js/pull/5523 -->
     <script src="js/VRControls.js"></script>
     <script src="js/VREffect.js"></script>
 
-    <script src="//js.leapmotion.com/leap-0.6.3.min.js"></script>
-    <script src="//js.leapmotion.com/leap-plugins-0.1.9.min.js"></script>
+    <script src="//js.leapmotion.com/leap-0.6.4.min.js"></script>
+    <script src="js/leap-plugins-0.1.11pre.js"></script>
 	</head>
 
 	<body>
@@ -209,16 +209,21 @@
   //
 
   // Moves (translates and rotates) the camera
-  var vrControls = new THREE.VRControls(camera);
+  var vrControls = new THREE.VRControls(camera, function(message){
+    console.log(message);
+  });
 
-  var vrEffect = new THREE.VREffect(renderer);
+  var vrEffect = new THREE.VREffect(renderer, function(message){
+      console.log(message);
+    });
 
 
   var onkey = function(event) {
-    if (event.key === 'z') {
+    if (event.key === 'z' || event.keyCode === 122) {
       vrControls.zeroSensor();
     }
-    if (event.key === 'f') {
+    if (event.key === 'f' || event.keyCode === 102) {
+      console.log('f');
       return vrEffect.setFullScreen(true);
     }
   };

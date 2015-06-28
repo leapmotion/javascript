@@ -3,58 +3,107 @@
  * @author mrdoob / http://mrdoob.com
  */
 
-THREE.VRControls = function ( object, callback ) {
+THREE.VRControls = function ( object, onError ) {
 
-	var vrInput;
+	var scope = this;
 
-	var onVRDevices = function ( devices ) {
+	var vrInputs = [];
+
+	function filterInvalidDevices( devices ) {
+
+		// Exclude Cardboard position sensor if Oculus exists.
+
+		var oculusDevices = devices.filter( function ( device ) {
+
+			return device.deviceName.toLowerCase().indexOf('oculus') !== -1;
+
+		} );
+
+		if ( oculusDevices.length >= 1 ) {
+
+			return devices.filter( function ( device ) {
+
+				return device.deviceName.toLowerCase().indexOf('cardboard') === -1;
+
+			} );
+
+		} else {
+
+			return devices;
+
+		}
+
+	}
+
+	function gotVRDevices( devices ) {
+
+		devices = filterInvalidDevices( devices );
 
 		for ( var i = 0; i < devices.length; i ++ ) {
 
-			var device = devices[ i ];
+			if ( devices[ i ] instanceof PositionSensorVRDevice ) {
 
-			if ( device instanceof PositionSensorVRDevice ) {
-
-				vrInput = devices[ i ];
-				return; // We keep the first we encounter
+				vrInputs.push( devices[ i ] );
 
 			}
 
 		}
 
-		if ( callback !== undefined ) {
+		if ( onError ) onError( 'HMD not available' );
 
-			callback( 'HMD not available' );
+	}
+
+	if ( navigator.getVRDevices ) {
+
+		navigator.getVRDevices().then( gotVRDevices );
+
+	}
+
+	// the Rift SDK returns the position in meters
+	// this scale factor allows the user to define how meters
+	// are converted to scene units.
+
+	this.scale = 1;
+
+	this.update = function () {
+
+		for ( var i = 0; i < vrInputs.length; i ++ ) {
+
+			var vrInput = vrInputs[ i ];
+
+			var state = vrInput.getState();
+
+			if ( state.orientation !== null ) {
+
+				object.quaternion.copy( state.orientation );
+
+			}
+
+			if ( state.position !== null ) {
+
+				object.position.copy( state.position ).multiplyScalar( scope.scale );
+
+			}
 
 		}
 
 	};
 
-	if ( navigator.getVRDevices !== undefined ) {
+	this.resetSensor = function () {
 
-		navigator.getVRDevices().then( onVRDevices );
+		for ( var i = 0; i < vrInputs.length; i ++ ) {
 
-	} else if ( callback !== undefined ) {
+			var vrInput = vrInputs[ i ];
 
-		callback( 'Your browser is not VR Ready' );
+			if ( vrInput.resetSensor !== undefined ) {
 
-	}
+				vrInput.resetSensor();
 
-	this.update = function () {
+			} else if ( vrInput.zeroSensor !== undefined ) {
 
-		if ( vrInput === undefined ) return;
+				vrInput.zeroSensor();
 
-		var state = vrInput.getState();
-
-		if ( state.orientation !== null ) {
-
-			object.quaternion.copy( state.orientation );
-
-		}
-
-		if ( state.position !== null ) {
-
-			object.position.copy( state.position );
+			}
 
 		}
 
@@ -62,9 +111,8 @@ THREE.VRControls = function ( object, callback ) {
 
 	this.zeroSensor = function () {
 
-		if ( vrInput === undefined ) return;
-
-		vrInput.zeroSensor();
+		console.warn( 'THREE.VRControls: .zeroSensor() is now .resetSensor().' );
+		this.resetSensor();
 
 	};
 
