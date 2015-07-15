@@ -5,10 +5,10 @@
 // say when a gesture is done, matching gestureID.
 Leap = require('leapjs');
 //_ = Leap._;
-_ = require('underscore'); // note that we require a new version of underscore for proper trailing: false
+_ = require('underscore'); // note that we require a newer version thatn Leap include, of underscore for throttle's {trailing: false}
 recipe = require('./recipe.json');
 
-console.log('hello world');
+var say = require('say');
 
 Leap.loop({enableGestures: true});
 
@@ -16,8 +16,9 @@ Leap.loop({enableGestures: true});
 
 
 
-
 var Speaker = function(recipe){
+  this.speaking = false;
+
   this.directions = recipe.directions.split('.');
   this.directionsIndex = 0;
   console.log("Loaded recipe, " + this.directions.length + " sentences");
@@ -41,7 +42,14 @@ Speaker.prototype = {
     if (this.directionsIndex === this.directions.length) return; // may be off by one.
 
     console.log('next line:' + this.directions[this.directionsIndex]);
+    say.speak('Alex', this.directions[this.directionsIndex], _.bind(this.speakingDone, this) );
+    this.speaking = true;
+
     this.directionsIndex++;
+  },
+
+  speakingDone: function(){
+    this.speaking = false;
   }
 
 };
