@@ -9,6 +9,8 @@ _ = require('underscore'); // note that we require a newer version thatn Leap in
 recipe = require('./recipe.json');
 
 var say = require('say');
+var loudness = require('loudness');
+
 
 Leap.loop({enableGestures: true});
 
@@ -34,7 +36,13 @@ Speaker.prototype = {
   }, 2000, {trailing: false} ),
 
   sayPreviousLine: function(){
-    console.log('previous line');
+    if (this.speaking){
+      console.log('still speaking, muting');
+      this.speaking = false;
+      loudness.setMuted(true, this.loudnessError);
+    }else {
+      console.log('previous line');
+    }
     if (this.directionsIndex === 0) return;
   },
 
@@ -42,6 +50,8 @@ Speaker.prototype = {
     if (this.directionsIndex === this.directions.length) return; // may be off by one.
 
     console.log('next line:' + this.directions[this.directionsIndex]);
+
+    loudness.setMuted(false, this.loudnessError);
     say.speak('Alex', this.directions[this.directionsIndex], _.bind(this.speakingDone, this) );
     this.speaking = true;
 
@@ -50,7 +60,9 @@ Speaker.prototype = {
 
   speakingDone: function(){
     this.speaking = false;
-  }
+  },
+
+  loudnessError: function(){}
 
 };
 
