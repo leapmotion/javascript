@@ -3,13 +3,15 @@
 // recipe: http://www.foodnetwork.com/recipes/tyler-florence/the-ultimate-beef-wellington-recipe2.html
 // a matching hand ID should be able to control volume post-swipe
 // say when a gesture is done, matching gestureID.
+// use hand speed for speech rate! (rolling average?) can we modify this in real time?
+
 Leap = require('leapjs');
 //_ = Leap._;
 _ = require('underscore'); // note that we require a newer version thatn Leap include, of underscore for throttle's {trailing: false}
 recipe = require('./recipe.json');
 
 var say = require('say');
-var loudness = require('loudness');
+var loudness = require('loudness');  // https://github.com/LinusU/node-loudness
 
 
 Leap.loop({enableGestures: true});
@@ -19,27 +21,30 @@ Leap.loop({enableGestures: true});
 
 
 var Speaker = function(recipe){
-  this.speaking = false;
+  this.speech = null;
 
   this.directions = recipe.directions.split('.');
   this.directionsIndex = 0;
+
   console.log("Loaded recipe, " + this.directions.length + " sentences");
 };
+
 Speaker.prototype = {
 
   handleGesture: _.throttle(function(gesture){
+    console.log('x rate:', gesture.direction[0]);
+
     if ( gesture.direction[0] > 0 ){
       this.sayNextLine();
     }else{
       this.sayPreviousLine();
     }
+
   }, 2000, {trailing: false} ),
 
   sayPreviousLine: function(){
-    if (this.speaking){
-      console.log('still speaking, muting');
-      this.speaking = false;
-      loudness.setMuted(true, this.loudnessError);
+    if (this.speech){
+      this.speech.kill('SIGHUP');
     }else {
       console.log('previous line');
     }
@@ -51,15 +56,13 @@ Speaker.prototype = {
 
     console.log('next line:' + this.directions[this.directionsIndex]);
 
-    loudness.setMuted(false, this.loudnessError);
-    say.speak('Alex', this.directions[this.directionsIndex], _.bind(this.speakingDone, this) );
-    this.speaking = true;
+    this.speech = say.speak('Alex', this.directions[this.directionsIndex], _.bind(this.speakingDone, this) );
 
     this.directionsIndex++;
   },
 
   speakingDone: function(){
-    this.speaking = false;
+    this.speech = null;
   },
 
   loudnessError: function(){}
@@ -77,15 +80,12 @@ Leap.loopController.on('gesture', function(gesture){
   if (hand.grabStrength > 0.7){
     console.log('rejecting due to high grabStrength: ' + hand.grabStrength);
     return
-  } else {
-    //console.log('grabStrength: ' + hand.grabStrength);
   }
 
   if (
     Math.abs(gesture.direction[0]) > Math.abs(gesture.direction[1]) &&
     Math.abs(gesture.direction[0]) > Math.abs(gesture.direction[2])
   ){
-    //console.log('gesture', arguments);
     speaker.handleGesture(gesture);
   }
 
