@@ -10,11 +10,12 @@
 
 Leap = require('leapjs');
 //_ = Leap._;
-_ = require('underscore'); // note that we require a newer version thatn Leap include, of underscore for throttle's {trailing: false}
+_ = require('underscore'); // note that we require a newer version than Leap includes of underscore for throttle's {trailing: false}
 recipe = require('./recipe.json');
 
-var say = require('say'); // todo - publish fork, or use https://github.com/Marak/say.js/pull/10
-var loudness = require('loudness');  // https://github.com/LinusU/node-loudness
+// mac/linux only
+var say = require('say');
+//var loudness = require('loudness');  // https://github.com/LinusU/node-loudness
 
 
 Leap.loop({enableGestures: true});
@@ -34,11 +35,11 @@ var Speaker = function(recipe){
 
 Speaker.prototype = {
 
-  handleGesture: _.throttle(function(gesture){
+  handleGesture: _.throttle(function(gesture){ // Reduce simultaneous fingers
     console.log('speed:', gesture.speed, 'gesture', gesture.id);
 
-    if ( gesture.direction[0] > 0 ){
-      this.sayNextLine(Math.abs(gesture.speed) - 30);
+    if ( gesture.direction[0] > 0 ){ // check sign of x component
+      this.sayNextLine(Math.abs(gesture.speed) - 30); // mm/s maps nicely to WPM
     }else{
       this.sayPreviousLine();
     }
@@ -49,19 +50,19 @@ Speaker.prototype = {
     if (this.speech){
       this.speech.kill('SIGHUP');
     }else {
+      if (this.directionsIndex === 0) return;
       console.log('previous line');
       this.directionsIndex--;
     }
-    if (this.directionsIndex === 0) return;
   },
 
   sayNextLine: function(rate){
 
-
-    console.log('next line:' + this.directions[this.directionsIndex]);
     if (this.speech) this.speech.kill('SIGHUP');
 
     var text = this.directionsIndex === this.directions.length ? "All Done!" : this.directions[this.directionsIndex]; // may be off by one.
+
+    console.log('next line: ' + text);
 
     this.speech = say.speak('Alex',
       text,
@@ -86,7 +87,7 @@ speaker = new Speaker(recipe);
 
 Leap.loopController.on('gesture', function(gesture){
   //if (gesture.type != 'swipe' && gesture.type != 'update') console.log('u', gesture.id);
-  if (gesture.type != 'swipe' && gesture.type != 'start') return;
+  if (gesture.type != 'swipe' || gesture.state != 'start') return;
 
   var hand = Leap.loopController.frame().hand(gesture.handIds[0]);
 

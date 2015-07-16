@@ -1,0 +1,15 @@
+{
+  "name": "Kitchen",
+  "description": "Speak Recipes aloud with your Leap Motion Controller",
+  "version": "0.1.0",
+  "author": "Peter Ehrlich",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/leapmotion-examples/javascript.git"
+  },
+  "dependencies": {
+    "leapjs": "^0.6.4",
+    "say": "pehrlich/say.js",
+    "underscore": "^1.8.3"
+  }
+}
