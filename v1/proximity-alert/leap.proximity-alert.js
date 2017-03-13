@@ -2,7 +2,7 @@
 (function() {
   Leap.Controller.plugin('proximityAlert', function(scope) {
     var activeOscillator, context, distanceFromSegment, masterGain, oscillate, panner, playBeep, playContinuous, playingUntil, setPannerPosition, silence;
-    if (scope == null) {
+    if (scope === null) {
       scope = {};
     }
     scope.beepFrq || (scope.beepFrq = 1318.51);
