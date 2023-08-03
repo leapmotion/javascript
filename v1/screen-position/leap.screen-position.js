@@ -28,10 +28,10 @@ More info on vec3 can be found, here: http://glmatrix.net/docs/2.2.0/symbols/vec
 
 
 (function() {
-  var screenPosition;
+  let screenPosition;
 
   screenPosition = function(options) {
-    var baseScale, baseVerticalOffset, position, positioningMethods;
+    let baseScale, baseVerticalOffset, position, positioningMethods;
     if (options == null) {
       options = {};
     }
@@ -49,7 +49,7 @@ More info on vec3 can be found, here: http://glmatrix.net/docs/2.2.0/symbols/vec
       }
     };
     position = function(vec3, memoize) {
-      var screenPositionVec3;
+      let screenPositionVec3;
       if (memoize == null) {
         memoize = false;
       }
